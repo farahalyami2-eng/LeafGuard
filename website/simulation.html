@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AgroMind Field Simulation</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#020a02;overflow:hidden}
+#simulation-mount{position:relative;width:100%;height:100vh;overflow:hidden;background:#020a02;font-family:'Courier New',monospace}
+#agro-canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+.hud{position:absolute;z-index:10;pointer-events:none}
+.hud-interactive{pointer-events:all}
+
+/* TOP BAR */
+#hud-top{top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.72);border-bottom:1px solid rgba(80,160,80,0.25);display:flex;align-items:center;padding:0 14px;gap:18px}
+#hud-brand{color:#4a9;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;white-space:nowrap}
+#hud-simtime{color:#8ec;font-size:12px;white-space:nowrap}
+#hud-weather-badge{background:rgba(60,120,60,0.3);border:1px solid rgba(80,180,80,0.3);border-radius:4px;padding:3px 8px;color:#aed;font-size:11px;white-space:nowrap}
+#hud-stats-right{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:11px}
+.stat{color:#6a9;white-space:nowrap}
+.stat span{color:#cec}
+.stat.warn span{color:#fa8}
+.stat.crit span{color:#f55}
+
+/* TOP-LEFT LEGEND */
+#hud-legend{top:56px;left:10px;width:200px;background:rgba(0,10,0,0.8);border:1px solid rgba(60,140,60,0.3);border-radius:6px;padding:10px;font-size:11px;color:#8ac}
+#hud-legend .leg-title{color:#4c9;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.leg-row{display:flex;align-items:center;gap:6px;margin:3px 0}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.leg-cond{margin-top:8px;padding-top:6px;border-top:1px solid rgba(60,120,60,0.2);font-size:12px;color:#ce9}
+#hud-gps{margin-top:6px;font-size:10px;color:#678;line-height:1.6}
+#hud-updated{font-size:9px;color:#456;margin-top:3px}
+
+/* RIGHT PANEL */
+#hud-right{top:56px;right:10px;width:248px;display:flex;flex-direction:column;gap:8px}
+.hud-card{background:rgba(0,10,0,0.82);border:1px solid rgba(60,140,60,0.28);border-radius:6px;padding:10px;font-size:11px;color:#8ac}
+.hud-card .card-title{color:#4c9;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px}
+.plant-row{display:flex;align-items:center;gap:5px;padding:2px 0;border-bottom:1px solid rgba(60,100,60,0.15)}
+.plant-row:last-child{border-bottom:none}
+.p-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.p-name{color:#ace;flex:1;font-size:10px}
+.p-bars{font-size:10px;color:#6a9}
+.p-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
+.badge-ok{background:rgba(40,180,80,0.25);color:#4e9}
+.badge-stress{background:rgba(200,160,40,0.25);color:#da6}
+.badge-disease{background:rgba(200,40,40,0.25);color:#f55}
+.badge-treated{background:rgba(40,120,200,0.25);color:#5ae}
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.env-item{background:rgba(0,20,0,0.5);border-radius:3px;padding:4px 6px}
+.env-label{font-size:9px;color:#567;text-transform:uppercase;letter-spacing:0.5px}
+.env-val{font-size:12px;color:#cec;font-weight:600;margin-top:1px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.field-item{background:rgba(0,20,0,0.5);border-radius:3px;padding:4px 6px;text-align:center}
+.field-label{font-size:9px;color:#567;text-transform:uppercase}
+.field-val{font-size:13px;color:#aec;font-weight:700}
+.product-row{font-size:10px;color:#789;padding:2px 0;display:flex;justify-content:space-between}
+
+/* BOTTOM CONTROLS */
+#hud-bottom{bottom:36px;left:0;right:0;padding:0 12px;display:flex;align-items:center;gap:10px;height:44px;background:rgba(0,0,0,0.7);border-top:1px solid rgba(60,140,60,0.2)}
+.btn-group{display:flex;gap:4px}
+.btn{background:rgba(30,80,30,0.6);border:1px solid rgba(80,160,80,0.3);color:#8c9;font-family:inherit;font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:all 0.15s}
+.btn:hover{background:rgba(50,130,50,0.7);color:#cec;border-color:rgba(80,200,80,0.5)}
+.btn.active{background:rgba(40,180,80,0.35);color:#4e9;border-color:#4a7}
+.btn-plant{font-size:10px;padding:4px 8px}
+.btn-action{font-size:10px;padding:4px 8px;background:rgba(0,40,60,0.6);border-color:rgba(40,120,160,0.3);color:#6ae}
+.btn-action:hover{background:rgba(0,60,100,0.7);color:#aef}
+.btn-action.water-active{background:rgba(0,60,180,0.4);color:#4af;border-color:#48f}
+.btn-action.spray-active{background:rgba(60,180,80,0.35);color:#4e9;border-color:#4a7}
+.btn-speed{font-size:10px;padding:4px 6px}
+.sep{color:rgba(80,160,80,0.3);font-size:18px;user-select:none}
+#hud-bottom-hint{margin-left:auto;font-size:10px;color:#456;white-space:nowrap}
+
+/* STATUS BAR */
+#hud-status{bottom:0;left:0;right:0;height:32px;background:rgba(0,0,0,0.8);border-top:1px solid rgba(40,100,40,0.2);display:flex;align-items:center;padding:0 14px;justify-content:space-between}
+#status-hints{font-size:10px;color:#456}
+#status-right{font-size:10px;color:#567}
+
+/* MODE INDICATOR */
+#mode-indicator{top:56px;left:50%;transform:translateX(-50%);background:rgba(0,20,40,0.9);border:1px solid #4af;border-radius:20px;padding:6px 18px;color:#8cf;font-size:12px;display:none;letter-spacing:1px}
+
+/* PLANT TOOLTIP */
+#plant-tooltip{background:rgba(0,15,0,0.95);border:1px solid rgba(80,200,80,0.4);border-radius:8px;padding:12px;font-size:11px;color:#aec;width:200px;display:none;pointer-events:none}
+#plant-tooltip .tt-title{color:#4e9;font-size:13px;font-weight:700;margin-bottom:6px}
+#plant-tooltip .tt-row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(40,80,40,0.2)}
+#plant-tooltip .tt-row:last-child{border-bottom:none}
+#plant-tooltip .tt-label{color:#678}
+#plant-tooltip .tt-val{color:#cec}
+
+/* STORM WARNING */
+#storm-warning{top:55px;left:50%;transform:translateX(-50%);background:rgba(180,60,0,0.9);border:1px solid #f80;border-radius:6px;padding:6px 16px;color:#fca;font-size:12px;font-weight:700;display:none;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+/* SCROLLBAR hidden */
+::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="simulation-mount">
+  <canvas id="agro-canvas"></canvas>
+
+  <!-- TOP BAR -->
+  <div class="hud" id="hud-top">
+    <span id="hud-brand">AgroMind</span>
+    <span id="hud-simtime">Day 1 · Week 1 · Spring · 06:00</span>
+    <span id="hud-weather-badge">📍 Loading…</span>
+    <div id="hud-stats-right">
+      <span class="stat">PLANTS <span id="s-plants">9</span></span>
+      <span class="stat">FPS <span id="s-fps">--</span></span>
+      <span class="stat" id="s-temp-stat">TEMP <span id="s-temp">--°C</span></span>
+      <span class="stat">WIND <span id="s-wind">--</span></span>
+      <span class="stat">RAIN <span id="s-rain">OFF</span></span>
+      <span class="stat">HUM <span id="s-hum">--%</span></span>
+      <span class="stat">SOIL <span id="s-soil">--%</span></span>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="hud" id="hud-legend">
+    <div class="leg-title">Field Legend</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#4e9"></div><span>Healthy</span></div>
+    <div class="leg-row"><div class="leg-dot" style="background:#da6"></div><span>Stressed</span></div>
+    <div class="leg-row"><div class="leg-dot" style="background:#f55"></div><span>Diseased</span></div>
+    <div class="leg-row"><div class="leg-dot" style="background:#5ae"></div><span>Treated</span></div>
+    <div class="leg-cond" id="leg-cond">CLEAR</div>
+    <div id="hud-gps">GPS: 24.7136°N 46.6753°E<br>Zone: Arid/Semi-arid</div>
+    <div id="hud-updated">Last update: --</div>
+  </div>
+
+  <!-- STORM WARNING -->
+  <div class="hud" id="storm-warning">⚠ STORM WARNING — Wind &gt;18 m/s</div>
+
+  <!-- MODE INDICATOR -->
+  <div class="hud" id="mode-indicator">WATER MODE — click a plant to irrigate</div>
+
+  <!-- RIGHT PANEL -->
+  <div class="hud" id="hud-right">
+    <div class="hud-card">
+      <div class="card-title">Plant Status</div>
+      <div id="plant-list"></div>
+    </div>
+    <div class="hud-card">
+      <div class="card-title">Environment</div>
+      <div class="env-grid">
+        <div class="env-item"><div class="env-label">Sun Elevation</div><div class="env-val" id="e-sun">--°</div></div>
+        <div class="env-item"><div class="env-label">Cloud Cover</div><div class="env-val" id="e-cloud">--%</div></div>
+        <div class="env-item"><div class="env-label">Photosynthesis</div><div class="env-val" id="e-photo">--%</div></div>
+        <div class="env-item"><div class="env-label">Evaporation</div><div class="env-val" id="e-evap">--/hr</div></div>
+      </div>
+    </div>
+    <div class="hud-card">
+      <div class="card-title">Field Metrics</div>
+      <div class="field-grid">
+        <div class="field-item"><div class="field-label">Soil Moisture</div><div class="field-val" id="f-moist">--%</div></div>
+        <div class="field-item"><div class="field-label">Soil pH</div><div class="field-val" id="f-ph">6.8</div></div>
+        <div class="field-item"><div class="field-label">Avg Temp</div><div class="field-val" id="f-temp">--°C</div></div>
+        <div class="field-item"><div class="field-label">N-P-K Est</div><div class="field-val" id="f-npk">--</div></div>
+      </div>
+    </div>
+    <div class="hud-card">
+      <div class="card-title">Applied Products</div>
+      <div id="product-list"><div style="color:#456;font-size:10px">None applied yet</div></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM CONTROLS -->
+  <div class="hud hud-interactive" id="hud-bottom">
+    <div class="btn-group">
+      <button class="btn btn-plant active" id="btn-tomato" onclick="window.simSetPlant('tomato')">Tomato</button>
+      <button class="btn btn-plant" id="btn-wheat" onclick="window.simSetPlant('wheat')">Wheat</button>
+      <button class="btn btn-plant" id="btn-pepper" onclick="window.simSetPlant('pepper')">Pepper</button>
+      <button class="btn btn-plant" id="btn-cucumber" onclick="window.simSetPlant('cucumber')">Cucumber</button>
+    </div>
+    <span class="sep">|</span>
+    <div class="btn-group">
+      <button class="btn btn-action" id="btn-water" onclick="window.simToggleWater()">💧 Water</button>
+      <button class="btn btn-action" id="btn-spray" onclick="window.simToggleSpray()">🌿 Spray</button>
+      <button class="btn btn-action" onclick="window.simAddDisease()">🦠 Disease</button>
+      <button class="btn btn-action" onclick="window.simAdvanceDay()">+1 Day</button>
+      <button class="btn btn-action" onclick="window.simAdvanceWeek()">+1 Week</button>
+    </div>
+    <span class="sep">|</span>
+    <div class="btn-group">
+      <button class="btn btn-speed active" id="spd-1" onclick="window.simSetSpeed(1)">x1</button>
+      <button class="btn btn-speed" id="spd-6" onclick="window.simSetSpeed(6)">x6</button>
+      <button class="btn btn-speed" id="spd-24" onclick="window.simSetSpeed(24)">x24</button>
+      <button class="btn btn-speed" id="spd-168" onclick="window.simSetSpeed(168)">x168</button>
+    </div>
+    <span id="hud-bottom-hint">Drag=rotate | Right drag=pan | Scroll=zoom | Click=interact</span>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="hud" id="hud-status">
+    <span id="status-hints">Drag=rotate · Right drag=pan · Scroll=zoom · Click plant=inspect</span>
+    <span id="status-right" id="status-r">GPS -- · -- · v1.0</span>
+  </div>
+
+  <!-- PLANT TOOLTIP -->
+  <div class="hud" id="plant-tooltip">
+    <div class="tt-title" id="tt-title">Plant 1</div>
+    <div class="tt-row"><span class="tt-label">Age</span><span class="tt-val" id="tt-age">--</span></div>
+    <div class="tt-row"><span class="tt-label">Health</span><span class="tt-val" id="tt-health">--</span></div>
+    <div class="tt-row"><span class="tt-label">Water</span><span class="tt-val" id="tt-water">--</span></div>
+    <div class="tt-row"><span class="tt-label">Growth</span><span class="tt-val" id="tt-growth">--</span></div>
+    <div class="tt-row"><span class="tt-label">Fruits</span><span class="tt-val" id="tt-fruits">--</span></div>
+    <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val" id="tt-status">--</span></div>
+    <div class="tt-row"><span class="tt-label">Stressors</span><span class="tt-val" id="tt-stress">--</span></div>
+    <div class="tt-row"><span class="tt-label">Est. Harvest</span><span class="tt-val" id="tt-harvest">--</span></div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// AGROMIND WEBGL FIELD SIMULATION  —  Pure WebGL 1.0
+// ═══════════════════════════════════════════════════════════════
+(function(){
+'use strict';
+
+// ── 1. MATRIX MATH ──────────────────────────────────────────────
+function m4id(){const m=new Float32Array(16);m[0]=m[5]=m[10]=m[15]=1;return m;}
+function m4mul(a,b){
+  const c=new Float32Array(16);
+  for(let r=0;r<4;r++)for(let col=0;col<4;col++){
+    let s=0;for(let k=0;k<4;k++)s+=a[k*4+r]*b[col*4+k];
+    c[col*4+r]=s;
+  }
+  return c;
+}
+function m4persp(fov,asp,n,f){
+  const t=1/Math.tan(fov/2),nf=1/(n-f),m=new Float32Array(16);
+  m[0]=t/asp;m[5]=t;m[10]=(f+n)*nf;m[11]=-1;m[14]=2*f*n*nf;return m;
+}
+function m4look(ex,ey,ez,cx,cy,cz){
+  let fx=cx-ex,fy=cy-ey,fz=cz-ez;
+  const fl=Math.sqrt(fx*fx+fy*fy+fz*fz);fx/=fl;fy/=fl;fz/=fl;
+  let rx=-fz,ry=0,rz=fx; // cross(f,(0,1,0))
+  const rl=Math.sqrt(rx*rx+rz*rz);rx/=rl;rz/=rl;
+  const ux=ry*fz-rz*fy,uy=rz*fx-rx*fz,uz=rx*fy-ry*fx;
+  const m=new Float32Array(16);
+  m[0]=rx;m[4]=ry;m[8]=rz; m[12]=-(rx*ex+ry*ey+rz*ez);
+  m[1]=ux;m[5]=uy;m[9]=uz; m[13]=-(ux*ex+uy*ey+uz*ez);
+  m[2]=-fx;m[6]=-fy;m[10]=-fz;m[14]=fx*ex+fy*ey+fz*ez;
+  m[15]=1;return m;
+}
+function m4tr(tx,ty,tz){const m=m4id();m[12]=tx;m[13]=ty;m[14]=tz;return m;}
+function m4sc(sx,sy,sz){const m=new Float32Array(16);m[0]=sx;m[5]=sy;m[10]=sz;m[15]=1;return m;}
+function m4ry(a){const m=m4id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[2]=-s;m[8]=s;m[10]=c;return m;}
+function m4rz(a){const m=m4id(),c=Math.cos(a),s=Math.sin(a);m[0]=c;m[1]=s;m[4]=-s;m[5]=c;return m;}
+function m4rx(a){const m=m4id(),c=Math.cos(a),s=Math.sin(a);m[5]=c;m[6]=s;m[9]=-s;m[10]=c;return m;}
+
+// ── 2. GEOMETRY BUILDERS ────────────────────────────────────────
+// stride=9 floats: [px,py,pz, nx,ny,nz, cr,cg,cb]
+function mkBox(w,h,d,r,g,b){
+  const hw=w/2,hh=h/2,hd=d/2;
+  const F=[
+    {vs:[[-hw,-hh,hd],[hw,-hh,hd],[hw,hh,hd],[-hw,hh,hd]],n:[0,0,1]},
+    {vs:[[hw,-hh,-hd],[-hw,-hh,-hd],[-hw,hh,-hd],[hw,hh,-hd]],n:[0,0,-1]},
+    {vs:[[-hw,-hh,-hd],[-hw,-hh,hd],[-hw,hh,hd],[-hw,hh,-hd]],n:[-1,0,0]},
+    {vs:[[hw,-hh,hd],[hw,-hh,-hd],[hw,hh,-hd],[hw,hh,hd]],n:[1,0,0]},
+    {vs:[[-hw,hh,hd],[hw,hh,hd],[hw,hh,-hd],[-hw,hh,-hd]],n:[0,1,0]},
+    {vs:[[-hw,-hh,-hd],[hw,-hh,-hd],[hw,-hh,hd],[-hw,-hh,hd]],n:[0,-1,0]},
+  ];
+  const V=[],I=[];let vi=0;
+  for(const f of F){for(const p of f.vs)V.push(p[0],p[1],p[2],f.n[0],f.n[1],f.n[2],r,g,b);I.push(vi,vi+1,vi+2,vi,vi+2,vi+3);vi+=4;}
+  return{verts:new Float32Array(V),idx:new Uint16Array(I)};
+}
+function mkCyl(radius,height,segs,r,g,b){
+  const V=[],I=[];let vi=0;const hh=height*.5,PI2=Math.PI*2;
+  for(let i=0;i<segs;i++){
+    const a0=(i/segs)*PI2,a1=((i+1)/segs)*PI2;
+    const x0=Math.cos(a0)*radius,z0=Math.sin(a0)*radius,x1=Math.cos(a1)*radius,z1=Math.sin(a1)*radius;
+    V.push(x0,-hh,z0,Math.cos(a0),0,Math.sin(a0),r,g,b);
+    V.push(x1,-hh,z1,Math.cos(a1),0,Math.sin(a1),r,g,b);
+    V.push(x1, hh,z1,Math.cos(a1),0,Math.sin(a1),r,g,b);
+    V.push(x0, hh,z0,Math.cos(a0),0,Math.sin(a0),r,g,b);
+    I.push(vi,vi+1,vi+2,vi,vi+2,vi+3);vi+=4;
+  }
+  const tc=vi++;V.push(0,hh,0,0,1,0,r,g,b);const ts=vi;
+  for(let i=0;i<=segs;i++){const a=(i/segs)*PI2;V.push(Math.cos(a)*radius,hh,Math.sin(a)*radius,0,1,0,r,g,b);if(i>0)I.push(tc,ts+i-1,ts+i);vi++;}
+  const bc=vi++;V.push(0,-hh,0,0,-1,0,r,g,b);const bs=vi;
+  for(let i=0;i<=segs;i++){const a=(i/segs)*PI2;V.push(Math.cos(a)*radius,-hh,Math.sin(a)*radius,0,-1,0,r,g,b);if(i>0)I.push(bc,bs+i,bs+i-1);vi++;}
+  return{verts:new Float32Array(V),idx:new Uint16Array(I)};
+}
+function mkSph(radius,segs,r,g,b){
+  const V=[],I=[],lons=segs*2;
+  for(let lat=0;lat<=segs;lat++){
+    const th=(lat/segs)*Math.PI,st=Math.sin(th),ct=Math.cos(th);
+    for(let lon=0;lon<=lons;lon++){
+      const ph=(lon/lons)*Math.PI*2,nx=Math.cos(ph)*st,ny=ct,nz=Math.sin(ph)*st;
+      V.push(nx*radius,ny*radius,nz*radius,nx,ny,nz,r,g,b);
+    }
+  }
+  const cols=lons+1;
+  for(let lat=0;lat<segs;lat++)for(let lon=0;lon<lons;lon++){
+    const a=lat*cols+lon,bv=a+cols;
+    I.push(a,bv,a+1,bv,bv+1,a+1);
+  }
+  return{verts:new Float32Array(V),idx:new Uint16Array(I)};
+}
+function mkCone(radius,height,segs,r,g,b){
+  const V=[],I=[];let vi=0;const hh=height*.5,PI2=Math.PI*2;
+  const sL=Math.sqrt(radius*radius+height*height),ny=radius/sL,ns=height/sL;
+  for(let i=0;i<segs;i++){
+    const a0=(i/segs)*PI2,a1=((i+1)/segs)*PI2;
+    const x0=Math.cos(a0)*radius,z0=Math.sin(a0)*radius,x1=Math.cos(a1)*radius,z1=Math.sin(a1)*radius;
+    const am=(a0+a1)/2;
+    V.push(0,hh,0,Math.cos(am)*ns,ny,Math.sin(am)*ns,r,g,b);
+    V.push(x0,-hh,z0,Math.cos(a0)*ns,ny,Math.sin(a0)*ns,r,g,b);
+    V.push(x1,-hh,z1,Math.cos(a1)*ns,ny,Math.sin(a1)*ns,r,g,b);
+    I.push(vi,vi+1,vi+2);vi+=3;
+  }
+  const bc=vi++;V.push(0,-hh,0,0,-1,0,r,g,b);const bs=vi;
+  for(let i=0;i<=segs;i++){const a=(i/segs)*PI2;V.push(Math.cos(a)*radius,-hh,Math.sin(a)*radius,0,-1,0,r,g,b);if(i>0)I.push(bc,bs+i,bs+i-1);vi++;}
+  return{verts:new Float32Array(V),idx:new Uint16Array(I)};
+}
+
+// Combine multiple meshes (optionally with transform applied to verts in JS)
+function combineMeshes(parts){
+  let totalV=0,totalI=0;
+  for(const p of parts){totalV+=p.mesh.verts.length;totalI+=p.mesh.idx.length;}
+  const V=new Float32Array(totalV),I=new Uint16Array(totalI);
+  let vo=0,io=0,vBase=0;
+  for(const p of parts){
+    const mv=p.mesh.verts,mi=p.mesh.idx;
+    const tx=p.tx||0,ty=p.ty||0,tz=p.tz||0;
+    const sx=p.sx||1,sy=p.sy||1,sz=p.sz||1;
+    for(let i=0;i<mv.length;i+=9){
+      V[vo+0]=mv[i+0]*sx+tx; V[vo+1]=mv[i+1]*sy+ty; V[vo+2]=mv[i+2]*sz+tz;
+      V[vo+3]=mv[i+3];       V[vo+4]=mv[i+4];       V[vo+5]=mv[i+5];
+      V[vo+6]=mv[i+6];       V[vo+7]=mv[i+7];       V[vo+8]=mv[i+8];
+      vo+=9;
+    }
+    const vCount=mv.length/9;
+    for(let i=0;i<mi.length;i++)I[io++]=mi[i]+vBase;
+    vBase+=vCount;
+  }
+  return{verts:V,idx:I};
+}
+
+// ── 3. WEBGL SETUP ──────────────────────────────────────────────
+const mount=document.getElementById('simulation-mount');
+const canvas=document.getElementById('agro-canvas');
+const gl=canvas.getContext('webgl',{antialias:true,alpha:false})||canvas.getContext('experimental-webgl');
+if(!gl){mount.innerHTML='<div style="color:#f55;padding:40px;text-align:center">WebGL not supported</div>';return;}
+
+gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);
+
+function resizeCanvas(){
+  const pr=window.devicePixelRatio||1;
+  canvas.width=mount.clientWidth*pr;canvas.height=mount.clientHeight*pr;
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+// ── 4. SHADERS ──────────────────────────────────────────────────
+const SOLID_VS=`
+attribute vec3 a_pos;
+attribute vec3 a_norm;
+attribute vec3 a_col;
+uniform mat4 u_mvp;
+uniform mat4 u_model;
+uniform vec3 u_lightDir;
+uniform vec3 u_lightCol;
+uniform float u_ambient;
+uniform vec3 u_eyePos;
+uniform float u_fogNear;
+uniform float u_fogFar;
+varying vec3 v_litCol;
+varying float v_fog;
+void main(){
+  vec4 wPos=u_model*vec4(a_pos,1.0);
+  gl_Position=u_mvp*vec4(a_pos,1.0);
+  vec3 wNorm=normalize(mat3(u_model)*a_norm);
+  float diff=max(dot(wNorm,normalize(u_lightDir)),0.0);
+  vec3 lit=a_col*(u_ambient+diff*(1.0-u_ambient))*u_lightCol;
+  v_litCol=clamp(lit,0.0,1.0);
+  float dist=length(wPos.xyz-u_eyePos);
+  v_fog=clamp((u_fogFar-dist)/(u_fogFar-u_fogNear),0.0,1.0);
+}`;
+const SOLID_FS=`
+precision mediump float;
+varying vec3 v_litCol;
+varying float v_fog;
+uniform vec3 u_fogCol;
+uniform vec3 u_tint;
+uniform float u_alpha;
+void main(){
+  vec3 c=v_litCol*u_tint;
+  gl_FragColor=vec4(mix(u_fogCol,c,v_fog),u_alpha);
+}`;
+const LINE_VS=`
+attribute vec3 a_pos;
+attribute vec4 a_col;
+uniform mat4 u_mvp;
+varying vec4 v_col;
+void main(){gl_Position=u_mvp*vec4(a_pos,1.0);v_col=a_col;}`;
+const LINE_FS=`
+precision mediump float;
+varying vec4 v_col;
+void main(){gl_FragColor=v_col;}`;
+
+function compileShader(src,type){
+  const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);
+  if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));return null;}
+  return sh;
+}
+function makeProgram(vs,fs){
+  const p=gl.createProgram();
+  gl.attachShader(p,compileShader(vs,gl.VERTEX_SHADER));
+  gl.attachShader(p,compileShader(fs,gl.FRAGMENT_SHADER));
+  gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(p));return null;}
+  return p;
+}
+const progSolid=makeProgram(SOLID_VS,SOLID_FS);
+const progLine=makeProgram(LINE_VS,LINE_FS);
+
+// Solid program locations
+const S={
+  aPos:gl.getAttribLocation(progSolid,'a_pos'),
+  aNorm:gl.getAttribLocation(progSolid,'a_norm'),
+  aCol:gl.getAttribLocation(progSolid,'a_col'),
+  uMvp:gl.getUniformLocation(progSolid,'u_mvp'),
+  uModel:gl.getUniformLocation(progSolid,'u_model'),
+  uLightDir:gl.getUniformLocation(progSolid,'u_lightDir'),
+  uLightCol:gl.getUniformLocation(progSolid,'u_lightCol'),
+  uAmbient:gl.getUniformLocation(progSolid,'u_ambient'),
+  uEyePos:gl.getUniformLocation(progSolid,'u_eyePos'),
+  uFogNear:gl.getUniformLocation(progSolid,'u_fogNear'),
+  uFogFar:gl.getUniformLocation(progSolid,'u_fogFar'),
+  uFogCol:gl.getUniformLocation(progSolid,'u_fogCol'),
+  uTint:gl.getUniformLocation(progSolid,'u_tint'),
+  uAlpha:gl.getUniformLocation(progSolid,'u_alpha'),
+};
+const L={
+  aPos:gl.getAttribLocation(progLine,'a_pos'),
+  aCol:gl.getAttribLocation(progLine,'a_col'),
+  uMvp:gl.getUniformLocation(progLine,'u_mvp'),
+};
+
+// ── 5. BUFFER HELPERS ───────────────────────────────────────────
+function uploadMesh(mesh){
+  const vbo=gl.createBuffer(),ibo=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.bufferData(gl.ARRAY_BUFFER,mesh.verts,gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibo);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,mesh.idx,gl.STATIC_DRAW);
+  return{vbo,ibo,count:mesh.idx.length};
+}
+function drawMesh(buf,mvp,model,tint,alpha){
+  gl.useProgram(progSolid);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.vbo);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,buf.ibo);
+  gl.vertexAttribPointer(S.aPos,3,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(S.aPos);
+  gl.vertexAttribPointer(S.aNorm,3,gl.FLOAT,false,36,12);gl.enableVertexAttribArray(S.aNorm);
+  gl.vertexAttribPointer(S.aCol,3,gl.FLOAT,false,36,24);gl.enableVertexAttribArray(S.aCol);
+  gl.uniformMatrix4fv(S.uMvp,false,mvp);
+  gl.uniformMatrix4fv(S.uModel,false,model);
+  gl.uniform3fv(S.uTint,tint||[1,1,1]);
+  gl.uniform1f(S.uAlpha,alpha!=null?alpha:1);
+  gl.drawElements(gl.TRIANGLES,buf.count,gl.UNSIGNED_SHORT,0);
+}
+
+// ── 6. PLANT MESHES ─────────────────────────────────────────────
+// Each plant type: array of {buf, ty, tx, tz, sx, sy, sz, isFruit, fruitIdx}
+// Parts built in local plant space (base at y=0)
+function buildPlantMeshes(){
+  const types={};
+
+  // TOMATO
+  types.tomato={
+    parts:[
+      {buf:uploadMesh(mkCyl(0.06,0.6,8,0.55,0.35,0.2)),ty:0.3,tx:0,tz:0},
+      {buf:uploadMesh(mkSph(0.44,10,0.2,0.65,0.15)),ty:0.78,tx:0,tz:0},
+      {buf:uploadMesh(mkSph(0.28,8,0.15,0.7,0.12)),ty:1.0,tx:0.1,tz:0.05},
+    ],
+    fruitRipe:uploadMesh(mkSph(0.08,6,0.85,0.15,0.1)),
+    fruitUnripe:uploadMesh(mkSph(0.08,6,0.2,0.6,0.1)),
+    fruitPos:[[0.32,0.7,-0.18],[-0.28,0.65,0.12],[0.1,0.62,0.36],[-0.12,0.8,0.28],[0.38,0.73,0.14]],
+    swayFreq:0.8,maxFruits:5,fruitWeek:6,
+  };
+
+  // WHEAT — 4 stalks
+  const wStalks=[];
+  const wOff=[[-0.15,0,-0.15],[0.15,0,-0.15],[-0.15,0,0.15],[0.15,0,0.15]];
+  for(const [ox,oy,oz] of wOff){
+    wStalks.push({buf:uploadMesh(mkCyl(0.025,0.9,5,0.7,0.65,0.2)),ty:0.45+oy,tx:ox,tz:oz});
+    wStalks.push({buf:uploadMesh(mkCone(0.04,0.18,5,0.8,0.7,0.15)),ty:0.99+oy,tx:ox,tz:oz});
+  }
+  types.wheat={parts:wStalks,swayFreq:1.4,maxFruits:0,fruitWeek:999};
+
+  // PEPPER
+  types.pepper={
+    parts:[
+      {buf:uploadMesh(mkCyl(0.04,0.5,7,0.4,0.25,0.1)),ty:0.25,tx:0,tz:0},
+      {buf:uploadMesh(mkSph(0.35,9,0.15,0.55,0.1)),ty:0.62,tx:0,tz:0},
+    ],
+    fruitRipe:uploadMesh(mkCyl(0.035,0.12,5,0.85,0.1,0.1)),
+    fruitUnripe:uploadMesh(mkCyl(0.035,0.12,5,0.2,0.65,0.1)),
+    fruitPos:[[0.2,0.55,-0.1],[-0.22,0.52,0.14],[0.1,0.6,0.22],[-0.1,0.58,-0.2],[0.26,0.58,0.18]],
+    fruitRot:true, // fruits rotate down
+    swayFreq:0.8,maxFruits:5,fruitWeek:5,
+  };
+
+  // CUCUMBER
+  types.cucumber={
+    parts:[
+      {buf:uploadMesh(mkCyl(0.035,0.8,7,0.35,0.25,0.12)),ty:0.4,tx:0,tz:0},
+      {buf:uploadMesh(mkSph(0.22,7,0.15,0.55,0.1)),ty:0.3,tx:0.16,tz:0.05,sy:0.25},
+      {buf:uploadMesh(mkSph(0.24,7,0.15,0.55,0.1)),ty:0.55,tx:-0.14,tz:0.1,sy:0.25},
+      {buf:uploadMesh(mkSph(0.2,7,0.15,0.55,0.1)),ty:0.77,tx:0.12,tz:-0.1,sy:0.25},
+    ],
+    fruitRipe:uploadMesh(mkCyl(0.04,0.24,5,0.2,0.65,0.15)),
+    fruitPos:[[0.25,0.42,0.06],[-0.24,0.62,-0.05],[0.2,0.63,0.2]],
+    fruitRot:'x', // horizontal
+    swayFreq:1.0,maxFruits:3,fruitWeek:5,
+  };
+
+  return types;
+}
+let PLANTS_MESH=buildPlantMeshes();
+
+// ── 7. SCENE STATIC MESHES ──────────────────────────────────────
+// Ground (3 soil layers, each plot as a flat box)
+const GROUND_LAYER=uploadMesh(mkBox(10,0.08,10,0.23,0.12,0.06)); // topsoil template
+const GROUND_SUB=uploadMesh(mkBox(10,0.3,10,0.18,0.09,0.04));
+const GROUND_BED=uploadMesh(mkBox(10,0.25,10,0.06,0.03,0.08));
+const SUN_MESH=uploadMesh(mkSph(0.6,8,1,0.98,0.88,0.4));
+const MOON_MESH=uploadMesh(mkSph(0.35,6,0.9,0.9,0.88));
+const CLOUD_MESH=uploadMesh(combineMeshes([
+  {mesh:mkSph(1,7,0.9,0.9,0.92),tx:0,ty:0,tz:0},
+  {mesh:mkSph(0.7,6,0.9,0.9,0.92),tx:0.9,ty:-0.1,tz:0},
+  {mesh:mkSph(0.8,6,0.9,0.9,0.92),tx:-0.8,ty:-0.15,tz:0},
+]));
+const STAR_MESH=uploadMesh(mkSph(0.04,4,0.95,0.92,0.88));
+const PUDDLE_MESH=uploadMesh(mkBox(1.2,0.01,0.9,0.1,0.2,0.45));
+
+// ── 8. DYNAMIC BUFFERS (lines + particles) ──────────────────────
+function makeDynBuf(size){
+  const vbo=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbo);
+  gl.bufferData(gl.ARRAY_BUFFER,size*4,gl.DYNAMIC_DRAW);
+  return{vbo,size,data:new Float32Array(size)};
+}
+const DYN_LINE=makeDynBuf(24000);  // line vertex pairs (7 floats per vert)
+const DYN_PART=makeDynBuf(6000);   // point particles (7 floats per vert)
+let dynLineCount=0,dynPartCount=0;
+
+function updateDynBuf(db,data,count){
+  gl.bindBuffer(gl.ARRAY_BUFFER,db.vbo);
+  gl.bufferSubData(gl.ARRAY_BUFFER,0,data.subarray(0,count*7));
+}
+function drawLines(buf,count,mvp){
+  if(count===0)return;
+  gl.useProgram(progLine);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.vbo);
+  gl.vertexAttribPointer(L.aPos,3,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(L.aPos);
+  gl.vertexAttribPointer(L.aCol,4,gl.FLOAT,false,28,12);gl.enableVertexAttribArray(L.aCol);
+  gl.uniformMatrix4fv(L.uMvp,false,mvp);
+  gl.drawArrays(gl.LINES,0,count);
+}
+function drawPoints(buf,count,mvp){
+  if(count===0)return;
+  gl.useProgram(progLine);
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf.vbo);
+  gl.vertexAttribPointer(L.aPos,3,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(L.aPos);
+  gl.vertexAttribPointer(L.aCol,4,gl.FLOAT,false,28,12);gl.enableVertexAttribArray(L.aCol);
+  gl.uniformMatrix4fv(L.uMvp,false,mvp);
+  gl.drawArrays(gl.POINTS,0,count);
+}
+
+// Line/particle push helpers
+function pushLine(d,off,x0,y0,z0,x1,y1,z1,r,g,b,a){
+  d[off+0]=x0;d[off+1]=y0;d[off+2]=z0;d[off+3]=r;d[off+4]=g;d[off+5]=b;d[off+6]=a;
+  d[off+7]=x1;d[off+8]=y1;d[off+9]=z1;d[off+10]=r;d[off+11]=g;d[off+12]=b;d[off+13]=a;
+  return off+14;
+}
+function pushVert(d,off,x,y,z,r,g,b,a){
+  d[off+0]=x;d[off+1]=y;d[off+2]=z;d[off+3]=r;d[off+4]=g;d[off+5]=b;d[off+6]=a;
+  return off+7;
+}
+
+// ── 9. CAMERA ───────────────────────────────────────────────────
+const cam={
+  theta:0.5,phi:0.55,dist:14,
+  tx:0,ty:0.5,tz:0,   // target
+  tTheta:0.5,tPhi:0.55,tDist:14,
+  tTx:0,tTy:0.5,tTz:0,
+  mouse:{down:false,rdown:false,lx:0,ly:0},
+};
+function camEye(){
+  const cp=Math.cos(cam.phi),sp=Math.sin(cam.phi);
+  const ct=Math.cos(cam.theta),st=Math.sin(cam.theta);
+  return[cam.tx+cam.dist*cp*st, cam.ty+cam.dist*sp, cam.tz+cam.dist*cp*ct];
+}
+function lerpCam(){
+  const L=0.08;
+  cam.theta+=(cam.tTheta-cam.theta)*L; cam.phi+=(cam.tPhi-cam.phi)*L;
+  cam.dist+=(cam.tDist-cam.dist)*L;
+  cam.tx+=(cam.tTx-cam.tx)*L; cam.ty+=(cam.tTy-cam.ty)*L; cam.tz+=(cam.tTz-cam.tz)*L;
+  cam.tPhi=Math.max(0.05,Math.min(Math.PI/2-0.05,cam.tPhi));
+  cam.tDist=Math.max(3,Math.min(40,cam.tDist));
+}
+canvas.addEventListener('mousedown',e=>{
+  if(e.button===0)cam.mouse.down=true;
+  else if(e.button===2)cam.mouse.rdown=true;
+  cam.mouse.lx=e.clientX;cam.mouse.ly=e.clientY;
+});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('mouseup',()=>{cam.mouse.down=false;cam.mouse.rdown=false;});
+window.addEventListener('mousemove',e=>{
+  const dx=e.clientX-cam.mouse.lx,dy=e.clientY-cam.mouse.ly;
+  cam.mouse.lx=e.clientX;cam.mouse.ly=e.clientY;
+  if(cam.mouse.down){cam.tTheta-=dx*0.006;cam.tPhi-=dy*0.006;}
+  else if(cam.mouse.rdown){
+    const cp=Math.cos(cam.theta),sp_=Math.sin(cam.theta);
+    const f=cam.dist*0.003;
+    cam.tTx+=(-cp*dx+0)*f; cam.tTy+=dy*f*0.5; cam.tTz+=(sp_*dx)*f;
+  }
+});
+canvas.addEventListener('wheel',e=>{cam.tDist+=e.deltaY*0.02;e.preventDefault();},{passive:false});
+
+// Touch support
+let lastTouch=null,lastTouchDist=0;
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(e.touches.length===1){cam.mouse.down=true;cam.mouse.lx=e.touches[0].clientX;cam.mouse.ly=e.touches[0].clientY;}
+  if(e.touches.length===2){lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
+},{passive:false});
+canvas.addEventListener('touchend',()=>{cam.mouse.down=false;});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&cam.mouse.down){
+    const dx=e.touches[0].clientX-cam.mouse.lx,dy=e.touches[0].clientY-cam.mouse.ly;
+    cam.mouse.lx=e.touches[0].clientX;cam.mouse.ly=e.touches[0].clientY;
+    cam.tTheta-=dx*0.006;cam.tPhi-=dy*0.006;
+  }
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    cam.tDist-=(d-lastTouchDist)*0.05;lastTouchDist=d;
+  }
+},{passive:false});
+
+// ── 10. SIMULATION STATE ─────────────────────────────────────────
+const SS={ // global sim state
+  simDay:1,simHour:6,simSeason:'Spring',simSpeed:1,
+  latitude:24.7136,longitude:46.6753,locationName:'Riyadh, SA',climateZone:'Arid',
+  temperature:34,humidity:18,windSpeed:3.2,windDirection:45,
+  windDirectionCardinal:'NE',precipitation:0,isRaining:false,rainIntensity:0,
+  cloudCover:0.1,weatherCondition:'CLEAR',lastWeatherUpdate:null,
+  sunElevation:45,sunAzimuth:180,isDaytime:true,photosynthesisRate:0.8,
+  soilMoisture:60,soilPH:6.8,evaporationRate:0.12,
+  plants:[],avgHealth:0,avgWater:0,yieldEst:0,
+  appliedProducts:[],plantType:'tomato',
+  waterModeActive:false,sprayModeActive:false,
+};
+window.simState=SS;
+
+// Init 9 plants in 3x3 grid
+for(let i=0;i<9;i++){
+  SS.plants.push({
+    id:i,health:80+Math.random()*20,water:65+Math.random()*20,
+    growth:0.15+Math.random()*0.3,status:'healthy',diseased:false,treated:false,
+    treatStartDay:0,treatProgress:0,
+    fruits:0,age:Math.floor(Math.random()*14)+1,
+    x:(i%3-1)*3,y:0,z:(Math.floor(i/3)-1)*3,
+    sprayParticles:[],waterParticles:[],photoGlow:0,
+  });
+}
+
+// Stars (static positions)
+const STARS=[];
+for(let i=0;i<200;i++){
+  const th=Math.random()*Math.PI*2,ph=Math.random()*Math.PI*0.5+0.1;
+  const d=28;
+  STARS.push([Math.cos(ph)*Math.sin(th)*d, Math.sin(ph)*d, Math.cos(ph)*Math.cos(th)*d]);
+}
+
+// Clouds
+const CLOUDS=[];
+for(let i=0;i<10;i++){
+  CLOUDS.push({
+    x:(Math.random()-0.5)*20,y:9+Math.random()*3,z:(Math.random()-0.5)*20,
+    scale:0.5+Math.random()*0.7,speed:0.3+Math.random()*0.4,
+  });
+}
+
+// Rain particles
+const RAIN=[];
+for(let i=0;i<200;i++){
+  RAIN.push({x:(Math.random()-0.5)*18,y:Math.random()*10,z:(Math.random()-0.5)*18,vy:0});
+}
+// Wind streaks
+const WIND_STREAKS=[];
+for(let i=0;i<50;i++){
+  WIND_STREAKS.push({x:(Math.random()-0.5)*18,y:0.5+Math.random()*4,z:(Math.random()-0.5)*18,t:Math.random()*10,alpha:0});
+}
+// Evaporation
+const EVAP=[];
+for(let p of SS.plants){
+  for(let j=0;j<4;j++)EVAP.push({px:p.x,pz:p.z,x:p.x+(Math.random()-.5)*2,y:0,z:p.z+(Math.random()-.5)*2,vy:0.3+Math.random()*0.3,life:Math.random()});
+}
+
+// ── 11. PHYSICS & SIMULATION ────────────────────────────────────
+let lastPhysicsHour=-1;
+function updatePhysics(dt,simTimeHours){
+  const T=SS.temperature,M=SS.soilMoisture,W=SS.windSpeed;
+
+  // Evaporation
+  const evaRate=0.01*T*(1-SS.humidity/100);
+  SS.evaporationRate=evaRate;
+  SS.soilMoisture=Math.max(0,SS.soilMoisture-evaRate*dt*0.5);
+
+  // Rain moisture
+  if(SS.isRaining){
+    SS.soilMoisture=Math.min(100,SS.soilMoisture+SS.rainIntensity*0.8*dt);
+  }
+
+  // Sun & photosynthesis
+  const sunEl=SS.sunElevation*Math.PI/180;
+  SS.photosynthesisRate=Math.max(0,Math.sin(sunEl));
+  SS.isDaytime=SS.sunElevation>-5;
+
+  // Per-plant updates (continuous, scaled)
+  for(const p of SS.plants){
+    // Water consumption
+    p.water=Math.max(0,p.water-(0.5+T*0.02+W*0.01)*dt/3600*SS.simSpeed);
+    if(SS.isRaining)p.water=Math.min(100,p.water+SS.rainIntensity*1.2*dt/3600*SS.simSpeed);
+
+    // Health delta (per sim-hour, scaled)
+    let dh=0;
+    if(M>30&&M<80)dh+=0.5; if(T>18&&T<30)dh+=0.3; if(SS.photosynthesisRate>0.5)dh+=0.2;
+    if(M<20)dh-=1.0; if(M<10)dh-=3.0;
+    if(T>42)dh-=3.0; if(T<5)dh-=2.0;
+    if(T>38&&T<=42)dh-=1.0; else if(T>30&&T<=38)dh-=0.05;
+    // Disease: full damage if untreated, tapers off over 2 days as treatment takes hold
+    if(p.diseased){
+      if(!p.treated){dh-=0.8;}
+      else{
+        const daysTreating=SS.simDay-p.treatStartDay+(SS.simHour/24);
+        const suppress=Math.min(1,daysTreating/2); // fully suppressed by day 2
+        dh-=0.8*(1-suppress);
+      }
+    }
+    // Gradual recovery while treated (+0.4/sim-hr, builds up over first day)
+    if(p.treated){
+      const daysTreating=SS.simDay-p.treatStartDay+(SS.simHour/24);
+      dh+=0.4*Math.min(1,daysTreating);
+    }
+    if(W>18)dh-=0.5;
+    if(p.water<25||M<20)dh-=1.0;
+    p.health=Math.max(0,Math.min(100,p.health+dh*dt/3600*SS.simSpeed));
+
+    // Growth
+    if(SS.sunElevation>0&&p.health>40){
+      let gr=0.002*(p.health/100)*SS.photosynthesisRate;
+      if(T>18&&T<30)gr*=1.2;
+      p.growth=Math.min(1,p.growth+gr*dt/3600*SS.simSpeed);
+    }
+
+    // Fruit production
+    const MESH=PLANTS_MESH[SS.plantType];
+    const maxF=MESH?MESH.maxFruits:0;
+    if(maxF>0&&p.growth>0.5&&p.health>60){
+      const fc=0.001*dt/3600*SS.simSpeed;
+      if(Math.random()<fc)p.fruits=Math.min(maxF,p.fruits+1);
+    }
+
+    // Age
+    p.age+=dt/3600/24*SS.simSpeed;
+
+    // Treatment progress & cure after 4 sim-days
+    if(p.treated){
+      const daysTreating=SS.simDay-p.treatStartDay+(SS.simHour/24);
+      p.treatProgress=Math.min(1,daysTreating/4);
+      if(daysTreating>=4){p.treated=false;p.diseased=false;p.treatProgress=0;}
+    }
+    // Status
+    if(p.treated)p.status='treated';
+    else if(p.diseased)p.status='diseased';
+    else if(p.water<25||M<20)p.status='stressed';
+    else if(p.health>70)p.status='healthy';
+    else p.status='poor';
+
+    // Photo glow pulse
+    p.photoGlow=SS.photosynthesisRate*(0.5+0.5*Math.sin(Date.now()*0.002+p.id));
+  }
+
+  // Aggregates
+  SS.avgHealth=SS.plants.reduce((a,p)=>a+p.health,0)/9;
+  SS.avgWater=SS.plants.reduce((a,p)=>a+p.water,0)/9;
+
+  // Sim time
+  SS.simHour+=SS.simSpeed*dt/3600;
+  if(SS.simHour>=24){SS.simHour-=24;SS.simDay++;}
+  if(SS.simDay>90){SS.simDay=1;SS.simSeason=(['Spring','Summer','Autumn','Winter'][((['Spring','Summer','Autumn','Winter'].indexOf(SS.simSeason)+1)%4)]);}
+}
+
+// ── 12. SOLAR POSITION ──────────────────────────────────────────
+function calcSun(lat,lng,dayOfYear,hour){
+  const latR=lat*Math.PI/180;
+  const dec=23.45*Math.sin((284+dayOfYear)/365*2*Math.PI)*Math.PI/180;
+  const ha=(hour-12)*15*Math.PI/180;
+  const sinEl=Math.sin(latR)*Math.sin(dec)+Math.cos(latR)*Math.cos(dec)*Math.cos(ha);
+  const el=Math.asin(Math.max(-1,Math.min(1,sinEl)));
+  const cosAz=(Math.sin(dec)*Math.cos(latR)-Math.cos(dec)*Math.cos(ha)*Math.sin(latR))/Math.cos(el+0.001);
+  let az=Math.acos(Math.max(-1,Math.min(1,cosAz)));
+  if(Math.sin(ha)>0)az=Math.PI*2-az;
+  return{el:el*180/Math.PI,az:az*180/Math.PI,elR:el,azR:az};
+}
+function sunWorldPos(el,az){
+  const dist=22,elR=el*Math.PI/180,azR=az*Math.PI/180;
+  return[dist*Math.cos(elR)*Math.sin(azR),dist*Math.sin(elR),dist*Math.cos(elR)*Math.cos(azR)];
+}
+
+// ── 13. WEATHER API ─────────────────────────────────────────────
+function fetchWeather(){
+  const{latitude:lat,longitude:lng}=SS;
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation,weather_code&timezone=auto`;
+  fetch(url).then(r=>r.json()).then(data=>{
+    const c=data.current;
+    SS.temperature=c.temperature_2m;
+    SS.humidity=c.relative_humidity_2m;
+    SS.windSpeed=c.wind_speed_10m/3.6;
+    SS.windDirection=c.wind_direction_10m;
+    SS.precipitation=c.precipitation;
+    const wc=c.weather_code;
+    if(wc<=1){SS.cloudCover=0.05;SS.isRaining=false;SS.weatherCondition='CLEAR';}
+    else if(wc<=3){SS.cloudCover=0.4;SS.isRaining=false;SS.weatherCondition='CLOUDY';}
+    else if(wc<=48){SS.cloudCover=0.8;SS.isRaining=false;SS.weatherCondition='FOG';}
+    else if(wc<=67){SS.isRaining=true;SS.rainIntensity=wc<60?0.2:0.6;SS.cloudCover=0.7;SS.weatherCondition='RAIN';}
+    else if(wc<=82){SS.isRaining=true;SS.rainIntensity=1.0;SS.cloudCover=0.9;SS.weatherCondition='RAIN';}
+    else if(wc>=95){SS.isRaining=true;SS.rainIntensity=1.0;SS.windSpeed+=8;SS.cloudCover=0.95;SS.weatherCondition='STORM';}
+    else{SS.isRaining=false;SS.weatherCondition='CLEAR';}
+    if(c.precipitation>0&&!SS.isRaining){SS.isRaining=true;SS.rainIntensity=Math.min(1,c.precipitation/10);}
+    SS.lastWeatherUpdate=new Date().toLocaleTimeString();
+    updateWindCardinal();
+  }).catch(()=>{SS.lastWeatherUpdate='API unavailable';});
+}
+function updateWindCardinal(){
+  const dirs=['N','NE','E','SE','S','SW','W','NW'];
+  SS.windDirectionCardinal=dirs[Math.round(SS.windDirection/45)%8];
+}
+function deriveClimate(){
+  const la=Math.abs(SS.latitude);
+  if(la<15){SS.climateZone='Tropical';SS.humidity=75;SS.windDirection=120;}
+  else if(la<30){SS.climateZone='Arid';SS.humidity=18;SS.windDirection=45;}
+  else if(la<45){SS.climateZone='Mediterranean';SS.humidity=55;SS.windDirection=270;}
+  else if(la<65){SS.climateZone='Temperate';SS.humidity=65;SS.windDirection=225;}
+  else{SS.climateZone='Subarctic';SS.humidity=45;SS.windDirection=270;}
+  updateWindCardinal();
+}
+
+// ── 14. GEOLOCATION ─────────────────────────────────────────────
+function initLocation(){
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      SS.latitude=pos.coords.latitude;SS.longitude=pos.coords.longitude;
+      SS.locationName='Your Location';
+      deriveClimate();fetchWeather();updateGPSDisplay();
+    },()=>{deriveClimate();fetchWeather();updateGPSDisplay();});
+  }else{deriveClimate();fetchWeather();updateGPSDisplay();}
+}
+function updateGPSDisplay(){
+  document.getElementById('hud-gps').innerHTML=
+    `GPS: ${SS.latitude.toFixed(4)}°N ${SS.longitude.toFixed(4)}°E<br>Zone: ${SS.climateZone}`;
+  document.getElementById('status-right').textContent=
+    `${SS.latitude.toFixed(2)}°N ${SS.longitude.toFixed(2)}°E · ${SS.climateZone} · v1.0`;
+}
+setInterval(fetchWeather,600000); // every 10 min
+
+// ── 15. SKY COLOR ────────────────────────────────────────────────
+function skyColor(sunElev){
+  const e=sunElev;
+  if(e<-10)return[0.01,0.04,0.01];
+  if(e<0){const t=(e+10)/10;return lerp3([0.01,0.04,0.01],[0.06,0.1,0.04],t);}
+  if(e<15){const t=e/15;return lerp3([0.06,0.1,0.04],[0.04,0.12,0.04],t);}
+  return[0.04,0.12,0.04];
+}
+function lerp3(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+
+// ── 16. PARTICLE SYSTEMS ─────────────────────────────────────────
+function updateRain(dt){
+  const wdR=SS.windDirection*Math.PI/180;
+  const wdx=Math.sin(wdR)*SS.windSpeed*0.3,wdz=Math.cos(wdR)*SS.windSpeed*0.3;
+  const spd=4+SS.windSpeed*0.3;
+  for(const r of RAIN){
+    r.y-=spd*dt;r.x+=wdx*dt;r.z+=wdz*dt;
+    if(r.y<-0.2){r.y=8+Math.random()*2;r.x=(Math.random()-.5)*18+wdx*2;r.z=(Math.random()-.5)*18+wdz*2;}
+  }
+}
+function updateWindStreaks(dt){
+  const wdR=SS.windDirection*Math.PI/180;
+  const speed=SS.windSpeed*0.5;
+  const dx=Math.sin(wdR)*speed,dz=Math.cos(wdR)*speed;
+  for(const s of WIND_STREAKS){
+    s.t+=dt;
+    s.x+=dx*dt;s.z+=dz*dt;
+    if(s.x>10||s.x<-10||s.z>10||s.z<-10){s.x=(Math.random()-.5)*20;s.z=(Math.random()-.5)*20;s.t=Math.random()*10;}
+    s.alpha=SS.windSpeed>3?Math.min(0.12,SS.windSpeed*0.005):0;
+  }
+}
+function updateEvap(dt){
+  const hot=SS.temperature>38&&SS.soilMoisture<50;
+  for(const e of EVAP){
+    e.y+=e.vy*dt*(hot?1:0.3);e.life-=dt*0.2;
+    if(e.life<=0){e.y=0;e.life=0.5+Math.random()*0.5;e.x=e.px+(Math.random()-.5)*2;e.z=e.pz+(Math.random()-.5)*2;}
+  }
+}
+
+// Spray/water particle per-plant
+function spawnSprayParticles(plant){
+  plant.sprayParticles=[];
+  for(let i=0;i<12;i++){
+    const a=Math.random()*Math.PI*2,el=Math.random()*Math.PI/2;
+    plant.sprayParticles.push({
+      x:plant.x,y:plant.growth*0.8,z:plant.z,
+      vx:Math.cos(a)*Math.cos(el)*2,vy:Math.sin(el)*2+1,vz:Math.sin(a)*Math.cos(el)*2,
+      life:1.0,
+    });
+  }
+}
+function spawnWaterParticles(plant){
+  plant.waterParticles=[];
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2,r=Math.random()*0.5;
+    plant.waterParticles.push({
+      x:plant.x+Math.cos(a)*r,y:3+Math.random(),z:plant.z+Math.sin(a)*r,
+      vx:(Math.random()-.5)*0.5,vy:-2-Math.random()*2,vz:(Math.random()-.5)*0.5,
+      life:1.0,bounced:false,
+    });
+  }
+}
+function updatePlantParticles(dt){
+  for(const p of SS.plants){
+    for(const sp of p.sprayParticles){sp.x+=sp.vx*dt;sp.y+=sp.vy*dt;sp.z+=sp.vz*dt;sp.vy-=4*dt;sp.life-=dt;}
+    p.sprayParticles=p.sprayParticles.filter(s=>s.life>0);
+    for(const wp of p.waterParticles){
+      wp.x+=wp.vx*dt;wp.y+=wp.vy*dt;wp.z+=wp.vz*dt;
+      if(!wp.bounced&&wp.y<0.05){wp.vy*=-0.2;wp.vx*=0.3;wp.vz*=0.3;wp.bounced=true;}
+      wp.life-=dt;
+    }
+    p.waterParticles=p.waterParticles.filter(w=>w.life>0);
+  }
+}
+
+// ── 17. HUD UPDATE ──────────────────────────────────────────────
+let frameCount=0,fpsTime=0,fpsVal=0;
+function updateFPS(dt){frameCount++;fpsTime+=dt;if(fpsTime>=0.5){fpsVal=Math.round(frameCount/fpsTime);frameCount=0;fpsTime=0;}}
+
+const statusColors={healthy:'#4e9',stressed:'#da6',diseased:'#f55',treated:'#5ae',poor:'#a66'};
+function updateHUD(){
+  const S2=SS;
+  // Sim time
+  const h=Math.floor(S2.simHour),m=Math.floor((S2.simHour%1)*60);
+  const wk=Math.ceil(S2.simDay/7);
+  document.getElementById('hud-simtime').textContent=
+    `Day ${S2.simDay} · Week ${wk} · ${S2.simSeason} · ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+
+  // Weather badge
+  document.getElementById('hud-weather-badge').textContent=`📍 ${S2.locationName} · ${S2.weatherCondition}`;
+
+  // Stats
+  document.getElementById('s-fps').textContent=fpsVal;
+  const tempEl=document.getElementById('s-temp');
+  tempEl.textContent=`${S2.temperature.toFixed(1)}°C`;
+  const tStat=document.getElementById('s-temp-stat');
+  tStat.className='stat'+(S2.temperature>42?' crit':S2.temperature>35?' warn':'');
+  document.getElementById('s-wind').textContent=`${S2.windSpeed.toFixed(1)}m/s @${Math.round(S2.windDirection)}° ${S2.windDirectionCardinal}`;
+  const rainTxt=['OFF','LIGHT','MOD','HEAVY'];
+  document.getElementById('s-rain').textContent=S2.isRaining?rainTxt[Math.ceil(S2.rainIntensity*2+0.1)]:'OFF';
+  document.getElementById('s-hum').textContent=`${Math.round(S2.humidity)}%`;
+  document.getElementById('s-soil').textContent=`${Math.round(S2.soilMoisture)}%`;
+
+  // Legend condition
+  const conds={CLEAR:'☀ CLEAR',CLOUDY:'⛅ CLOUDY',RAIN:'🌧 RAIN',STORM:'⛈ STORM',FOG:'🌫 FOG'};
+  document.getElementById('leg-cond').textContent=conds[S2.weatherCondition]||S2.weatherCondition;
+  document.getElementById('hud-updated').textContent=`Updated: ${S2.lastWeatherUpdate||'--'}`;
+
+  // Storm warning
+  document.getElementById('storm-warning').style.display=S2.windSpeed>18?'block':'none';
+
+  // Plant list
+  const pl=document.getElementById('plant-list');
+  pl.innerHTML=SS.plants.map(p=>`
+    <div class="plant-row">
+      <div class="p-dot" style="background:${statusColors[p.status]||'#666'}"></div>
+      <span class="p-name">P${p.id+1}</span>
+      <span class="p-bars">H:${Math.round(p.health)}% W:${Math.round(p.water)}%</span>
+      <span class="p-badge badge-${p.status==='healthy'?'ok':p.status==='stressed'?'stress':p.status==='diseased'?'disease':p.status==='treated'?'treated':'stress'}">${p.status==='treated'?`D${Math.floor(p.treatProgress*4)+1}/4`:p.status.toUpperCase().slice(0,4)}</span>
+    </div>`).join('');
+
+  // Environment
+  const sunPhase=S2.sunElevation>15?'DAY':S2.sunElevation>0?'SUNRISE':S2.sunElevation>-5?'GOLDEN':'NIGHT';
+  document.getElementById('e-sun').textContent=`${S2.sunElevation.toFixed(1)}° ${sunPhase}`;
+  document.getElementById('e-cloud').textContent=`${Math.round(S2.cloudCover*100)}%`;
+  document.getElementById('e-photo').textContent=`${Math.round(S2.photosynthesisRate*100)}%`;
+  document.getElementById('e-evap').textContent=`${S2.evaporationRate.toFixed(2)}/hr`;
+
+  // Field metrics
+  document.getElementById('f-moist').textContent=`${Math.round(S2.soilMoisture)}%`;
+  document.getElementById('f-temp').textContent=`${S2.temperature.toFixed(1)}°C`;
+  const npk=`${Math.round(40+S2.avgHealth*.4)}-${Math.round(20+S2.avgHealth*.2)}-${Math.round(30+S2.avgHealth*.3)}`;
+  document.getElementById('f-npk').textContent=npk;
+
+  // Products
+  const prodEl=document.getElementById('product-list');
+  if(SS.appliedProducts.length>0){
+    prodEl.innerHTML=SS.appliedProducts.map(p=>`<div class="product-row"><span>${p.name}</span><span>Day ${p.day}</span></div>`).join('');
+  }
+
+  // Mode indicator
+  const mi=document.getElementById('mode-indicator');
+  if(SS.waterModeActive){mi.style.display='block';mi.textContent='💧 WATER MODE — click a plant to irrigate';}
+  else if(SS.sprayModeActive){mi.style.display='block';mi.textContent='🌿 SPRAY MODE — click a plant to treat';}
+  else mi.style.display='none';
+
+  // Button states
+  ['tomato','wheat','pepper','cucumber'].forEach(t=>{
+    document.getElementById('btn-'+t).className='btn btn-plant'+(SS.plantType===t?' active':'');
+  });
+  document.getElementById('btn-water').className='btn btn-action'+(SS.waterModeActive?' water-active':'');
+  document.getElementById('btn-spray').className='btn btn-action'+(SS.sprayModeActive?' spray-active':'');
+  [1,6,24,168].forEach(s=>{
+    const el=document.getElementById('spd-'+s);
+    if(el)el.className='btn btn-speed'+(SS.simSpeed===s?' active':'');
+  });
+}
+
+// ── 18. PLANT TOOLTIP ───────────────────────────────────────────
+let tooltipTarget=null,tooltipTimer=0;
+function showTooltip(plant,screenX,screenY){
+  const el=document.getElementById('plant-tooltip');
+  document.getElementById('tt-title').textContent=`Plant ${plant.id+1} (${SS.plantType})`;
+  document.getElementById('tt-age').textContent=`${Math.floor(plant.age)} days`;
+  document.getElementById('tt-health').textContent=`${Math.round(plant.health)}%`;
+  document.getElementById('tt-water').textContent=`${Math.round(plant.water)}%`;
+  document.getElementById('tt-growth').textContent=`${Math.round(plant.growth*100)}%`;
+  document.getElementById('tt-fruits').textContent=plant.fruits;
+  document.getElementById('tt-status').textContent=plant.status;
+  const stressors=[];
+  if(SS.soilMoisture<20)stressors.push('Low moisture');
+  if(plant.water<25)stressors.push('Thirsty');
+  if(SS.temperature>42)stressors.push('Heat stress');
+  if(SS.temperature<5)stressors.push('Cold stress');
+  if(plant.diseased)stressors.push('Diseased');
+  document.getElementById('tt-stress').textContent=stressors.join(', ')||'None';
+  const daysLeft=Math.max(0,Math.round((90-plant.age)*(2-plant.health/100)));
+  document.getElementById('tt-harvest').textContent=`~Day ${SS.simDay+daysLeft}`;
+  const mw=mount.clientWidth,mh=mount.clientHeight;
+  el.style.left=Math.min(screenX+10,mw-220)+'px';
+  el.style.top=Math.min(screenY-10,mh-300)+'px';
+  el.style.display='block';
+  tooltipTimer=2;
+}
+function hideTooltip(){document.getElementById('plant-tooltip').style.display='none';}
+
+// ── 19. CLICK / INTERACTION ──────────────────────────────────────
+canvas.addEventListener('click',e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)/rect.width*2-1;
+  const my=-((e.clientY-rect.top)/rect.height*2-1);
+  const eye=camEye();
+  const aspect=canvas.width/canvas.height;
+  const proj=m4persp(0.7854,aspect,0.1,80);
+  const view=m4look(eye[0],eye[1],eye[2],cam.tx,cam.ty,cam.tz);
+  const vp=m4mul(proj,view);
+
+  let best=null,bestDist=0.2;
+  for(const p of SS.plants){
+    // Project plant world pos to NDC
+    const wx=p.x,wy=p.y+p.growth*0.6,wz=p.z;
+    const clip=[
+      vp[0]*wx+vp[4]*wy+vp[8]*wz+vp[12],
+      vp[1]*wx+vp[5]*wy+vp[9]*wz+vp[13],
+      vp[2]*wx+vp[6]*wy+vp[10]*wz+vp[14],
+      vp[3]*wx+vp[7]*wy+vp[11]*wz+vp[15],
+    ];
+    if(clip[3]<0.1)continue;
+    const ndcX=clip[0]/clip[3],ndcY=clip[1]/clip[3];
+    const d=Math.sqrt((ndcX-mx)**2+(ndcY-my)**2);
+    if(d<bestDist){bestDist=d;best=p;}
+  }
+
+  if(best){
+    if(SS.waterModeActive){
+      best.water=Math.min(100,best.water+25);
+      best.health=Math.min(100,best.health+4);
+      SS.soilMoisture=Math.min(100,SS.soilMoisture+15);
+      spawnWaterParticles(best);
+    }else if(SS.sprayModeActive){
+      if(!best.treated){  // don't re-apply if already in treatment
+        best.treated=true;
+        best.treatStartDay=SS.simDay+(SS.simHour/24);
+        best.treatProgress=0;
+        spawnSprayParticles(best);
+        SS.appliedProducts.push({name:`Spray P${best.id+1}`,day:SS.simDay});
+      }
+    }else{
+      showTooltip(best,e.clientX,e.clientY);
+    }
+  }else{
+    hideTooltip();
+  }
+});
+
+// ── 20. RENDER HELPERS ───────────────────────────────────────────
+function setLighting(lightDir,lightCol,ambient,eyePos,fogCol,fogNear,fogFar){
+  gl.useProgram(progSolid);
+  gl.uniform3fv(S.uLightDir,lightDir);gl.uniform3fv(S.uLightCol,lightCol);
+  gl.uniform1f(S.uAmbient,ambient);gl.uniform3fv(S.uEyePos,eyePos);
+  gl.uniform3fv(S.uFogCol,fogCol);gl.uniform1f(S.uFogNear,fogNear);gl.uniform1f(S.uFogFar,fogFar);
+}
+
+function drawMeshAt(buf,vp,px,py,pz,sx,sy,sz,rx,ry,rz,tint,alpha){
+  let model=m4tr(px,py,pz);
+  if(ry!==0)model=m4mul(model,m4ry(ry));
+  if(rx!==0)model=m4mul(model,m4rx(rx));
+  if(rz!==0)model=m4mul(model,m4rz(rz));
+  if(sx!==1||sy!==1||sz!==1)model=m4mul(model,m4sc(sx,sy,sz));
+  const mvp=m4mul(vp,model);
+  drawMesh(buf,mvp,model,tint,alpha);
+}
+
+// ── 21. PLANT RENDERING ──────────────────────────────────────────
+const healthTints={
+  healthy:[1,1,1],stressed:[1.1,0.75,0.3],diseased:[1.2,0.4,0.4],
+  treated:[0.5,0.85,1.2],poor:[0.8,0.8,0.5]
+};
+function renderPlants(vp,t){
+  const PM=PLANTS_MESH[SS.plantType];
+  if(!PM)return;
+  for(const p of SS.plants){
+    const tint=healthTints[p.status]||[1,1,1];
+    const g=Math.max(0.05,p.growth);
+    const freq=PM.swayFreq||1;
+    const swayZ=Math.sin(t*freq+p.id*1.3)*SS.windSpeed*0.012;
+    const swayX=Math.cos(t*freq*0.7+p.id*0.9)*SS.windSpeed*0.008;
+    const baseModel=m4mul(m4tr(p.x,p.y,p.z),m4mul(m4sc(g,g,g),m4rz(swayZ)));
+
+    for(const part of PM.parts){
+      const partModel=m4mul(baseModel,m4tr(part.tx||0,part.ty||0,part.tz||0));
+      const scalePart=m4mul(partModel,(part.sx||part.sy||part.sz)?m4sc(part.sx||1,part.sy||1,part.sz||1):m4id());
+      drawMesh(part.buf,m4mul(vp,scalePart),scalePart,tint,1);
+    }
+
+    // Fruits
+    const maxF=PM.maxFruits||0;
+    const ripeWeek=PM.fruitWeek||999;
+    if(maxF>0&&PM.fruitPos&&p.fruits>0){
+      const numFruits=Math.min(p.fruits,PM.fruitPos.length);
+      for(let fi=0;fi<numFruits;fi++){
+        const fp=PM.fruitPos[fi];
+        const ripe=p.age>ripeWeek*7;
+        const fBuf=ripe?(PM.fruitRipe||PM.fruitUnripe):PM.fruitUnripe;
+        if(!fBuf)continue;
+        let fm=m4mul(baseModel,m4tr(fp[0],fp[1],fp[2]));
+        if(PM.fruitRot==='x')fm=m4mul(fm,m4rx(Math.PI/2));
+        else if(PM.fruitRot===true)fm=m4mul(fm,m4rx(-0.5));
+        drawMesh(fBuf,m4mul(vp,fm),fm,tint,1);
+      }
+    }
+  }
+}
+
+// ── 22. GROUND RENDERING ────────────────────────────────────────
+function renderGround(vp){
+  // Topsoil color based on moisture
+  const wet=[0.23,0.12,0.04],dry=[0.77,0.67,0.52];
+  const t=SS.soilMoisture/100;
+  const tc=[wet[0]+(dry[0]-wet[0])*(1-t),wet[1]+(dry[1]-wet[1])*(1-t),wet[2]+(dry[2]-wet[2])*(1-t)];
+
+  // Soil layer 1 (topsoil) - tint by moisture
+  drawMeshAt(GROUND_LAYER,vp,0,-0.04,0,1,1,1,0,0,0,tc,1);
+  drawMeshAt(GROUND_SUB,vp,0,-0.23,0,1,1,1,0,0,0,[0.18,0.09,0.04],1);
+  drawMeshAt(GROUND_BED,vp,0,-0.505,0,1,1,1,0,0,0,[0.06,0.03,0.08],1);
+
+  // Puddles
+  if(SS.soilMoisture>82){
+    const puddles=[[-2,0,-2],[1,0,2],[-1.5,0,1.5]];
+    const pa=Math.min(0.6,(SS.soilMoisture-82)/18*0.6);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+    for(const [px,py,pz] of puddles){
+      drawMeshAt(PUDDLE_MESH,vp,px,0.01,pz,1,1,1,0,0,0,[0.15,0.35,0.6],pa);
+    }
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  }
+}
+
+// ── 23. DYNAMIC LINES RENDERING ──────────────────────────────────
+function buildLineData(vp,t){
+  const LD=DYN_LINE.data;
+  let off=0;
+
+  // Growth paths — green spiral per plant
+  for(const p of SS.plants){
+    if(p.growth<0.05)continue;
+    const h=p.growth;const col=statusColors[p.status]||'#4e9';
+    const rc=p.status==='healthy'?[0.27,0.87,0.5]:p.status==='stressed'?[0.87,0.67,0.2]:p.status==='diseased'?[0.87,0.2,0.2]:[0.3,0.6,1];
+    const alpha=0.3*SS.photosynthesisRate*(0.5+0.5*Math.sin(t*1.5+p.id));
+    for(let seg=0;seg<12&&off+14<LD.length;seg++){
+      const y0=(seg/12)*h,y1=((seg+1)/12)*h;
+      const a0=seg*0.5+t*0.3,a1=(seg+1)*0.5+t*0.3;
+      const r=0.15+seg*0.02;
+      off=pushLine(LD,off,p.x+Math.cos(a0)*r,y0,p.z+Math.sin(a0)*r,p.x+Math.cos(a1)*r,y1,p.z+Math.sin(a1)*r,rc[0],rc[1],rc[2],alpha);
+    }
+  }
+  // Root lines
+  for(const p of SS.plants){
+    const rootLen=Math.min(0.8,0.2+p.age*0.008+SS.soilMoisture*0.003);
+    const moist=SS.soilMoisture>40;
+    const rc=moist?[0.3,0.6,0.9]:[0.8,0.5,0.15];
+    for(let ri=0;ri<4&&off+14<LD.length;ri++){
+      const a=(ri/4)*Math.PI*2,dx=Math.cos(a)*0.4,dz=Math.sin(a)*0.4;
+      off=pushLine(LD,off,p.x,0,p.z,p.x+dx,-rootLen,p.z+dz,rc[0],rc[1],rc[2],0.4);
+    }
+  }
+  // Water flow rings
+  for(const p of SS.plants){
+    if(SS.soilMoisture<30)continue;
+    const alpha=SS.soilMoisture/400;const rot=t*0.3;
+    const rc=[0.23,0.55,0.85];
+    for(let ri=0;ri<8&&off+14<LD.length;ri++){
+      const a0=(ri/8)*Math.PI*2+rot,a1=((ri+1)/8)*Math.PI*2+rot;
+      off=pushLine(LD,off,p.x+Math.cos(a0)*0.8,0.01,p.z+Math.sin(a0)*0.8,p.x+Math.cos(a1)*0.8,0.01,p.z+Math.sin(a1)*0.8,rc[0],rc[1],rc[2],alpha);
+    }
+  }
+  // Disease spread lines
+  const diseased=SS.plants.filter(p=>p.diseased);
+  for(let i=0;i<diseased.length;i++)for(let j=i+1;j<diseased.length&&off+14<LD.length;j++){
+    const a=diseased[i],b2=diseased[j];
+    const d=Math.sqrt((a.x-b2.x)**2+(a.z-b2.z)**2);
+    if(d<4){
+      const pulse=0.25*(0.5+0.5*Math.sin(t*3));
+      off=pushLine(LD,off,a.x,0.1,a.z,b2.x,0.1,b2.z,0.87,0.15,0.15,pulse);
+    }
+  }
+  // Spray coverage
+  const treated=SS.plants.filter(p=>p.treated);
+  for(let i=0;i<treated.length;i++)for(let j=i+1;j<treated.length&&off+14<LD.length;j++){
+    const a=treated[i],b2=treated[j];
+    const d=Math.sqrt((a.x-b2.x)**2+(a.z-b2.z)**2);
+    if(d<6){
+      const pulse=0.28*(0.5+0.5*Math.sin(t*4+i));
+      off=pushLine(LD,off,a.x,0.15,a.z,b2.x,0.15,b2.z,0.87,0.63,0.16,pulse);
+    }
+  }
+  // Wind direction arrow
+  if(SS.windSpeed>1&&off+42<LD.length){
+    const wdR=SS.windDirection*Math.PI/180;
+    const len=SS.windSpeed*0.15,wx=Math.sin(wdR)*len,wz=Math.cos(wdR)*len;
+    off=pushLine(LD,off,0,0.2,0,wx,0.2,wz,0.9,0.9,0.9,0.5);
+    const ah=0.15,aR1=wdR+2.7,aR2=wdR-2.7;
+    off=pushLine(LD,off,wx,0.2,wz,wx+Math.sin(aR1)*ah,0.2,wz+Math.cos(aR1)*ah,0.9,0.9,0.9,0.5);
+    off=pushLine(LD,off,wx,0.2,wz,wx+Math.sin(aR2)*ah,0.2,wz+Math.cos(aR2)*ah,0.9,0.9,0.9,0.5);
+  }
+
+  // Append rain + wind streaks as line pairs
+  off=appendRainAndWind(LD,off);
+  const lineVerts=off/7;
+  updateDynBuf(DYN_LINE,LD,lineVerts);
+  drawLines(DYN_LINE,lineVerts,vp);
+  return lineVerts;
+}
+
+// ── 24. PARTICLE RENDERING ───────────────────────────────────────
+// Rain lines and wind streaks are appended to DYN_LINE (drawn as GL_LINES)
+// Spray/water/evap/photo go to DYN_PART (drawn as GL_POINTS)
+function appendRainAndWind(LD, startOff){
+  let off=startOff;
+  if(SS.isRaining){
+    const wdR=SS.windDirection*Math.PI/180;
+    const ldx=Math.sin(wdR)*0.3,ldz=Math.cos(wdR)*0.3;
+    for(const r of RAIN){
+      if(off+14>=LD.length)break;
+      const a=SS.rainIntensity*0.6;
+      off=pushLine(LD,off,r.x,r.y,r.z,r.x+ldx,r.y+0.3,r.z+ldz,0.7,0.83,1,a);
+    }
+  }
+  for(const s of WIND_STREAKS){
+    if(s.alpha<=0||off+14>=LD.length)continue;
+    const wdR=SS.windDirection*Math.PI/180;
+    const len=0.8,dx=Math.sin(wdR)*len,dz=Math.cos(wdR)*len;
+    off=pushLine(LD,off,s.x,s.y,s.z,s.x-dx,s.y,s.z-dz,1,1,1,s.alpha);
+  }
+  return off;
+}
+
+function renderParticles(vp,t,lineVertCount){
+  // DYN_PART gets only point-mode particles
+  const PD=DYN_PART.data;
+  let off=0;
+  // Spray + water
+  for(const p of SS.plants){
+    for(const sp of p.sprayParticles){
+      if(off+7>=PD.length)break;
+      off=pushVert(PD,off,sp.x,sp.y,sp.z,0.31,0.86,0.7,sp.life);
+    }
+    for(const wp of p.waterParticles){
+      if(off+7>=PD.length)break;
+      off=pushVert(PD,off,wp.x,wp.y,wp.z,0.39,0.63,1,wp.life);
+    }
+  }
+  // Evaporation
+  const hot=SS.temperature>38&&SS.soilMoisture<50;
+  for(const e of EVAP){
+    if(off+7>=PD.length||!hot)break;
+    off=pushVert(PD,off,e.x,e.y,e.z,0.78,0.7,0.55,e.life*0.3);
+  }
+  // Photo glow
+  for(const p of SS.plants){
+    if(p.photoGlow<0.05||off+7>=PD.length)continue;
+    off=pushVert(PD,off,p.x,p.growth*0.7,p.z,0.3,0.9,0.4,p.photoGlow*0.2);
+  }
+  const ptCount=off/7;
+  if(ptCount>0){
+    updateDynBuf(DYN_PART,PD,ptCount);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+    drawPoints(DYN_PART,ptCount,vp);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  }
+}
+
+// ── 25. SKY OBJECTS ──────────────────────────────────────────────
+function renderSkyObjects(vp,sunPos,sunEl){
+  gl.disable(gl.CULL_FACE);
+  // Sun
+  if(sunEl>-5){
+    const brightness=Math.max(0.2,Math.min(1,(sunEl+5)/20));
+    drawMeshAt(SUN_MESH,vp,sunPos[0],sunPos[1],sunPos[2],1,1,1,0,0,0,[brightness,brightness*0.9,brightness*0.4],1);
+  }
+  // Moon (opposite side)
+  const moonEl=-sunEl,moonAz=SS.sunAzimuth+180;
+  const mPos=sunWorldPos(moonEl,moonAz);
+  if(moonEl>-10){
+    drawMeshAt(MOON_MESH,vp,mPos[0],mPos[1],mPos[2],1,1,1,0,0,0,[0.85,0.83,0.78],1);
+  }
+  // Stars
+  if(sunEl<5){
+    const starAlpha=Math.max(0,Math.min(1,(-sunEl)/10));
+    for(const s of STARS){
+      drawMeshAt(STAR_MESH,vp,s[0],s[1],s[2],1,1,1,0,0,0,[0.92,0.9,0.85],starAlpha);
+    }
+  }
+  // Clouds
+  const cScale=Math.max(1,SS.cloudCover*2);
+  for(const c of CLOUDS){
+    const cloudAlpha=0.65*SS.cloudCover;
+    drawMeshAt(CLOUD_MESH,vp,c.x,c.y,c.z,c.scale*cScale,c.scale*0.25,c.scale*cScale,0,0,0,[0.88,0.88,0.9],cloudAlpha);
+  }
+  gl.enable(gl.CULL_FACE);
+}
+
+// ── 26. MAIN RENDER LOOP ─────────────────────────────────────────
+let lastT=0,simTime=0;
+function render(now){
+  now*=0.001;
+  const dt=Math.min((now-lastT),0.1);lastT=now;
+  simTime+=dt;
+
+  updateFPS(dt);
+  lerpCam();
+
+  // Solar position
+  const doy=Math.floor(SS.simDay%365)+1;
+  const sun=calcSun(SS.latitude,SS.longitude,doy,SS.simHour);
+  SS.sunElevation=sun.el;SS.sunAzimuth=sun.az;
+  const sunPos=sunWorldPos(sun.el,sun.az);
+  const sunDir=[sunPos[0],sunPos[1],sunPos[2]];
+  const sdLen=Math.sqrt(sunDir[0]**2+sunDir[1]**2+sunDir[2]**2)||1;
+  const snorm=[sunDir[0]/sdLen,sunDir[1]/sdLen,sunDir[2]/sdLen];
+
+  // Lighting params
+  const isDay=sun.el>0;
+  const isGolden=sun.el>0&&sun.el<15;
+  let lightCol=[1,1,1],ambient=isDay?0.18:0.06;
+  if(isGolden){lightCol=[1,0.8,0.45];ambient=0.25;}
+  if(!isDay){lightCol=[0.2,0.25,0.4];ambient=0.06;}
+  const lightDir=isDay?snorm:[0,1,0];
+
+  // Sky
+  const skyCol=skyColor(sun.el);
+  gl.clearColor(skyCol[0],skyCol[1],skyCol[2],1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+  // Matrices
+  const eye=camEye();
+  const aspect=canvas.width/canvas.height;
+  const proj=m4persp(0.7854,aspect,0.1,80);
+  const view=m4look(eye[0],eye[1],eye[2],cam.tx,cam.ty,cam.tz);
+  const vp=m4mul(proj,view);
+
+  const fogNear=10,fogFar=35;
+  setLighting(lightDir,lightCol,ambient,eye,skyCol,fogNear,fogFar);
+
+  // Update clouds position
+  const wdR=SS.windDirection*Math.PI/180;
+  for(const c of CLOUDS){
+    c.x+=Math.sin(wdR)*c.speed*dt*0.1;c.z+=Math.cos(wdR)*c.speed*dt*0.1;
+    if(c.x>14)c.x=-14;if(c.x<-14)c.x=14;if(c.z>14)c.z=-14;if(c.z<-14)c.z=14;
+  }
+
+  // Render
+  renderSkyObjects(vp,sunPos,sun.el);
+  renderGround(vp);
+  renderPlants(vp,simTime);
+
+  // Particles update
+  updateRain(dt);updateWindStreaks(dt);updateEvap(dt);updatePlantParticles(dt);
+
+  // renderLines fills DYN_LINE, then we append rain/wind to same buffer
+  const lineVerts=buildLineData(vp,simTime);
+  renderParticles(vp,simTime,lineVerts);
+
+  // Physics
+  updatePhysics(dt,SS.simHour);
+
+  // Tooltip timer
+  if(tooltipTimer>0){tooltipTimer-=dt;if(tooltipTimer<=0)hideTooltip();}
+
+  // HUD (every ~10 frames)
+  if(Math.floor(simTime*30)%10===0)updateHUD();
+
+  requestAnimationFrame(render);
+}
+
+// ── 27. GLOBAL API ───────────────────────────────────────────────
+window.simSetPlant=function(type){
+  SS.plantType=type;
+  // Reset fruits when switching
+  for(const p of SS.plants){p.fruits=0;}
+};
+window.simToggleWater=function(){
+  SS.waterModeActive=!SS.waterModeActive;if(SS.waterModeActive)SS.sprayModeActive=false;
+};
+window.simToggleSpray=function(){
+  SS.sprayModeActive=!SS.sprayModeActive;if(SS.sprayModeActive)SS.waterModeActive=false;
+};
+window.simAddDisease=function(){
+  const healthy=SS.plants.filter(p=>!p.diseased);
+  if(healthy.length>0){const p=healthy[Math.floor(Math.random()*healthy.length)];p.diseased=true;p.status='diseased';}
+};
+window.simAdvanceDay=function(){
+  SS.simHour+=24;if(SS.simHour>=24){SS.simHour%=24;SS.simDay++;}
+  for(const p of SS.plants){p.age+=1;}
+};
+window.simAdvanceWeek=function(){
+  SS.simDay+=7;SS.simHour=SS.simHour%24;
+  for(const p of SS.plants){p.age+=7;p.growth=Math.min(1,p.growth+0.05);}
+};
+window.simSetSpeed=function(n){SS.simSpeed=n;};
+
+// ── 28. INIT ─────────────────────────────────────────────────────
+initLocation();
+requestAnimationFrame(render);
+
+// Cleanup
+const _intv=setInterval(fetchWeather,600000);
+const obs=new MutationObserver(()=>{
+  if(!document.contains(mount)){clearInterval(_intv);obs.disconnect();}
+});
+obs.observe(document.body,{childList:true,subtree:true});
+
+})();
+</script>
+</body>
+</html>
