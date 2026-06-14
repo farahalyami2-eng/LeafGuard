@@ -281,7 +281,7 @@ function renderCart() {
   if (!cart.length) {
     itemsEl.innerHTML = `<div class="cart-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span>Your cart is empty</span>
+      <span>${t('cart_empty_title')}</span>
     </div>`;
     footerEl.innerHTML = '';
     return;
@@ -313,11 +313,11 @@ function renderCart() {
   const total = sub + shipping + vat;
 
   footerEl.innerHTML = `
-    <div class="cart-line"><span>Subtotal</span><span>SAR ${sub.toLocaleString()}</span></div>
-    <div class="cart-line"><span>Shipping</span><span>SAR ${shipping}</span></div>
-    <div class="cart-line"><span>VAT (15%)</span><span>SAR ${vat.toLocaleString()}</span></div>
-    <div class="cart-line total"><span>Grand Total</span><span>SAR ${total.toLocaleString()}</span></div>
-    <button class="checkout-btn" onclick="submitOrder()">Checkout</button>`;
+    <div class="cart-line"><span>${t('cart_subtotal')}</span><span>SAR ${sub.toLocaleString()}</span></div>
+    <div class="cart-line"><span>${t('cart_shipping')}</span><span>SAR ${shipping}</span></div>
+    <div class="cart-line"><span>${t('cart_vat')}</span><span>SAR ${vat.toLocaleString()}</span></div>
+    <div class="cart-line total"><span>${t('cart_grand_total')}</span><span>SAR ${total.toLocaleString()}</span></div>
+    <button class="checkout-btn" onclick="submitOrder()">${t('cart_checkout')}</button>`;
 }
 
 /* ============================================================
@@ -685,7 +685,7 @@ function renderOrdersList(orders) {
   if (badge) badge.textContent = orders.length || '';
 
   if (!orders.length) {
-    el.innerHTML = `<div class="orders-list-empty">No orders yet.<br>Add items to your cart and checkout!</div>`;
+    el.innerHTML = `<div class="orders-list-empty">${t('orders_none').replace('\n','<br>')}</div>`;
     return;
   }
 

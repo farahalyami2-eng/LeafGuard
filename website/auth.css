@@ -152,12 +152,14 @@ body.cursor-hover .cursor-ring { width: 40px; height: 40px; }
   border-radius: 7px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgba(255,255,255,.4);
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.45);
   cursor: none;
   transition: background .18s, color .18s;
 }
-.auth-tab.active { background: rgba(255,255,255,.1); color: #fff; }
-.auth-tab:hover:not(.active) { color: rgba(255,255,255,.65); }
+.auth-tab.active { background: rgba(255,255,255,.12); color: #fff; }
+.auth-tab:hover:not(.active) { color: rgba(255,255,255,.7); background: rgba(255,255,255,.05); }
 
 /* ---- FORM ---- */
 .auth-form { display: flex; flex-direction: column; gap: 18px; }
@@ -193,7 +195,14 @@ body.cursor-hover .cursor-ring { width: 40px; height: 40px; }
   transition: border-color .15s, background .15s;
 }
 .form-input:focus  { border-color: var(--leaf); background: rgba(255,255,255,.07); }
-.form-input::placeholder { color: rgba(255,255,255,.2); }
+.form-input::placeholder { color: rgba(255,255,255,.35); }
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgba(255,255,255,.9);
+  -webkit-box-shadow: 0 0 0 1000px #1a2212 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
 
 .form-error {
   font-size: 0.8rem;

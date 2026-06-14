@@ -130,7 +130,8 @@ body.cursor-hover .cursor-ring { width: 44px; height: 44px; border-color: var(--
 [dir="rtl"] .msg--bot  { flex-direction: row-reverse; }
 [dir="rtl"] .msg--user .msg-bubble { border-radius: 18px 4px 18px 18px; }
 [dir="rtl"] .msg--bot  .msg-bubble { border-radius: 4px 18px 18px 18px; }
-[dir="rtl"] .cart-drawer { left:0;right:auto; }
+[dir="rtl"] .cart-drawer { left:0;right:auto;transform:translateX(-100%);box-shadow:20px 0 60px rgba(14,18,9,.3); }
+[dir="rtl"] .cart-drawer.open { transform:translateX(0); }
 [dir="rtl"] .user-dropdown { right:auto;left:12px; }
 
 .cart-btn {
