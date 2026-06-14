@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeafGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cabinet+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="i18n.js"></script>
+</head>
+<body>
+
+  <div class="cursor-dot"  id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- =================== LOCATION MODAL =================== -->
+  <div class="modal-overlay" id="locationModal">
+    <div class="modal-box">
+      <div class="modal-icon-wrap">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5a9e3c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <h2 class="modal-title" data-i18n="modal_loc_title">Allow Location Access</h2>
+      <p class="modal-desc" data-i18n="modal_loc_desc">LeafGuard uses your location to provide climate-specific advice, irrigation schedules, and product recommendations for your region.</p>
+      <div class="modal-actions">
+        <button class="modal-btn-primary" onclick="allowLocation()" data-i18n="modal_loc_allow">Allow Location</button>
+        <button class="modal-btn-ghost"   onclick="skipLocation()" data-i18n="modal_loc_skip">Skip for now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== USER DROPDOWN =================== -->
+  <div class="user-dropdown hidden" id="userDropdown">
+    <div class="dropdown-name" id="dropdownName"></div>
+    <div class="dropdown-email" id="dropdownEmail"></div>
+    <div class="dropdown-divider"></div>
+    <button class="dropdown-item" onclick="handleLogout()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span data-i18n="nav_signout">Sign Out</span>
+    </button>
+  </div>
+
+  <!-- =================== NAV =================== -->
+  <nav class="nav nav--dark" id="mainNav">
+    <div class="nav-inner">
+      <a class="nav-logo" href="#" onclick="goPage('home');return false;">
+        <img src="logo.png" alt="LeafGuard" class="nav-logo-img">
+      </a>
+      <ul class="nav-links">
+        <li><a href="#" class="nav-link active" data-page="home"      onclick="goPage('home');return false;"      data-i18n="nav_home">Home</a></li>
+        <li><a href="#" class="nav-link"         data-page="sim"       onclick="goPage('sim');return false;"       data-i18n="nav_sim">Simulation</a></li>
+        <li><a href="#" class="nav-link"         data-page="shop"      onclick="goPage('shop');return false;"      data-i18n="nav_shop">Shop</a></li>
+        <li><a href="#" class="nav-link"         data-page="chat"      onclick="goPage('chat');return false;"      data-i18n="nav_chat">AI Advisor</a></li>
+        <li><a href="#" class="nav-link"         data-page="dashboard" onclick="goPage('dashboard');return false;" data-i18n="nav_dashboard">Dashboard</a></li>
+        <li><a href="#" class="nav-link"         data-page="orders"    onclick="goPage('orders');return false;"    data-i18n="nav_orders">My Orders</a></li>
+      </ul>
+      <div class="nav-right">
+        <div class="lang-switcher">
+          <button class="lang-btn" data-lang="en"  onclick="setLanguage('en')">EN</button>
+          <button class="lang-btn" data-lang="zh"  onclick="setLanguage('zh')">中文</button>
+          <button class="lang-btn" data-lang="ar"  onclick="setLanguage('ar')">عربي</button>
+        </div>
+        <button class="cart-btn" id="cartBtn" onclick="toggleCart()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 01-8 0"/>
+          </svg>
+          <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+        <button class="user-btn" id="userBtn" onclick="toggleUserDropdown()">
+          <div class="user-avatar" id="userAvatar"></div>
+          <span class="user-name-nav" id="userNameNav"></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- =================== PAGE: HOME =================== -->
+  <div class="page" id="page-home">
+    <section class="hero">
+      <div class="hero-grain"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+      <div class="hero-content">
+        <div class="hero-tag"><span class="tag-dot"></span><span data-i18n="hero_tag">AI-Powered Agricultural Intelligence</span></div>
+        <h1 class="hero-title" data-i18n-html="hero_title">Grow <em>smarter.</em><br>Farm with data.</h1>
+        <p class="hero-sub" data-i18n="hero_sub">LeafGuard combines 3D simulation, AI diagnostics, and precision agronomy to help farmers make better decisions — from soil to harvest.</p>
+        <div class="hero-ctas">
+          <button class="btn-primary" onclick="goPage('sim')" data-i18n="hero_btn_sim">Try Simulation</button>
+          <button class="btn-ghost"   onclick="goPage('shop')" data-i18n="hero_btn_shop">Browse Products</button>
+        </div>
+      </div>
+      <div class="stats-strip">
+        <div class="stat-item"><span class="stat-num">114+</span><span class="stat-label" data-i18n="stat_products">Products</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-item"><span class="stat-num">9</span><span class="stat-label" data-i18n="stat_species">Plant Species</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-item"><span class="stat-num">3D</span><span class="stat-label" data-i18n="stat_sim">Simulation</span></div>
+        <div class="stat-divider"></div>
+        <div class="stat-item"><span class="stat-num">24/7</span><span class="stat-label" data-i18n="stat_advisor">AI Advisor</span></div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="container">
+        <div class="section-label" data-i18n="feat_label">Platform Capabilities</div>
+        <h2 class="section-title" data-i18n="feat_title">Everything you need to farm intelligently</h2>
+        <div class="features-grid">
+          <div class="feature-card" onclick="goPage('sim')">
+            <div class="feature-icon" style="background:#1a3d1a">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8ecf5e" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_3d_title">3D Simulation</h3>
+            <p class="feature-desc" data-i18n="feat_3d_desc">Visualize your field in three dimensions. Run growth models, test irrigation scenarios, and predict yield before planting.</p>
+            <span class="feature-link"><span data-i18n="feat_3d_link">Launch Simulation</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+          <div class="feature-card" onclick="goPage('chat')">
+            <div class="feature-icon" style="background:#1a3020">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5a9e3c" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_ai_title">AI Advisor</h3>
+            <p class="feature-desc" data-i18n="feat_ai_desc">Get expert crop management advice, disease diagnosis, and product recommendations from our AI agronomist — 24/7.</p>
+            <span class="feature-link"><span data-i18n="feat_ai_link">Ask a Question</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+          <div class="feature-card" onclick="goPage('shop')">
+            <div class="feature-icon" style="background:#3d2a1a">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#b8764a" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_shop_title">Smart Shop</h3>
+            <p class="feature-desc" data-i18n="feat_shop_desc">Browse 114+ certified agricultural products — fertilizers, pesticides, and growth regulators — filtered by crop and problem.</p>
+            <span class="feature-link"><span data-i18n="feat_shop_link">Browse Products</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+          <div class="feature-card" onclick="goPage('dashboard')">
+            <div class="feature-icon" style="background:#1a2035">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4a7ec9" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_gps_title">GPS Field Analysis</h3>
+            <p class="feature-desc" data-i18n="feat_gps_desc">Map your fields with GPS precision. Identify soil variation zones and optimize resource allocation.</p>
+            <span class="feature-link"><span data-i18n="feat_gps_link">View Dashboard</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+          <div class="feature-card" onclick="goPage('dashboard')">
+            <div class="feature-icon" style="background:#2a1a35">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9a6cc9" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_dash_title">Live Dashboard</h3>
+            <p class="feature-desc" data-i18n="feat_dash_desc">Monitor plant health, track orders, view simulation runs, and analyze yield trends all in one hub.</p>
+            <span class="feature-link"><span data-i18n="feat_dash_link">Open Dashboard</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+          <div class="feature-card" onclick="goPage('chat')">
+            <div class="feature-icon" style="background:#351a1a">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c94a4a" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3 class="feature-title" data-i18n="feat_disease_title">Disease Detection</h3>
+            <p class="feature-desc" data-i18n="feat_disease_desc">AI-powered plant disease identification. Describe symptoms, get instant diagnosis and treatment recommendations.</p>
+            <span class="feature-link"><span data-i18n="feat_disease_link">Diagnose Now</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- =================== PAGE: SIMULATION =================== -->
+  <div class="page hidden" id="page-sim">
+    <div class="sim-placeholder" id="simulation-mount">
+      <div class="sim-placeholder-inner">
+        <div class="sim-placeholder-icon">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#3d6b2a" stroke-width="1.2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <p class="sim-placeholder-text" data-i18n="sim_loads">Simulation loads here</p>
+        <p class="sim-placeholder-sub" data-i18n="sim_connect">Connect the 3D simulation module to begin</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PAGE: SHOP =================== -->
+  <div class="page hidden" id="page-shop">
+    <div class="shop-layout">
+      <aside class="shop-sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-label" data-i18n="shop_category">Category</div>
+          <ul class="filter-list" id="filterCategory">
+            <li class="filter-item active" data-cat="All"><span class="filter-dot" style="background:#8ecf5e"></span><span data-i18n="shop_all">All</span></li>
+            <li class="filter-item" data-cat="Fertilizers"><span class="filter-dot" style="background:#4a7ec9"></span><span data-i18n="shop_fertilizers">Fertilizers</span></li>
+            <li class="filter-item" data-cat="Biological Pesticides"><span class="filter-dot" style="background:#5a9e3c"></span><span data-i18n="shop_bio">Biological Pesticides</span></li>
+            <li class="filter-item" data-cat="Chemical Pesticides"><span class="filter-dot" style="background:#c97a2a"></span><span data-i18n="shop_chem">Chemical Pesticides</span></li>
+            <li class="filter-item" data-cat="Plant Growth Regulators"><span class="filter-dot" style="background:#9a6cc9"></span><span data-i18n="shop_pgr">Plant Growth Regulators</span></li>
+          </ul>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-label" data-i18n="shop_subtype">Sub-type</div>
+          <ul class="filter-list" id="filterSubtype">
+            <li class="filter-item active" data-sub="All"><span class="filter-dot" style="background:#8ecf5e"></span><span data-i18n="shop_all">All</span></li>
+            <li class="filter-item" data-sub="Insecticides"><span class="filter-dot" style="background:#c94a4a"></span><span data-i18n="shop_insect">Insecticides</span></li>
+            <li class="filter-item" data-sub="Fungicides"><span class="filter-dot" style="background:#c9a84c"></span><span data-i18n="shop_fungi">Fungicides</span></li>
+            <li class="filter-item" data-sub="Herbicides"><span class="filter-dot" style="background:#7a4f2d"></span><span data-i18n="shop_herb">Herbicides</span></li>
+            <li class="filter-item" data-sub="Foliar Nutrients"><span class="filter-dot" style="background:#5a9e3c"></span><span data-i18n="shop_foliar">Foliar Nutrients</span></li>
+            <li class="filter-item" data-sub="Bacillus Bio"><span class="filter-dot" style="background:#3d6b2a"></span><span data-i18n="shop_bacillus">Bacillus Bio</span></li>
+          </ul>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-label" data-i18n="shop_price">Price Range (SAR)</div>
+          <div class="price-range-wrap">
+            <input type="range" id="priceSlider" min="20" max="500" value="500" class="range-slider">
+            <div class="price-display">SAR 20 — <span id="priceMax">500</span></div>
+          </div>
+        </div>
+      </aside>
+      <div class="shop-main">
+        <div class="shop-toolbar">
+          <div class="search-wrap">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search products..." data-i18n-ph="shop_search_ph">
+          </div>
+          <select id="sortSelect" class="sort-select">
+            <option value="name" data-i18n="shop_sort_name">Sort: Name</option>
+            <option value="type" data-i18n="shop_sort_type">Sort: Type</option>
+            <option value="price-asc" data-i18n="shop_sort_asc">Price: Low to High</option>
+            <option value="price-desc" data-i18n="shop_sort_desc">Price: High to Low</option>
+          </select>
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PAGE: AI ADVISOR =================== -->
+  <div class="page hidden" id="page-chat">
+    <div class="chat-layout">
+      <aside class="chat-sidebar">
+        <div class="chat-sidebar-section">
+          <div class="sidebar-label" data-i18n="chat_topics">Topics</div>
+          <ul class="topic-list">
+            <li class="topic-item active" data-topic="crop">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22V12M12 12C12 6 7 3 7 3s0 5 5 9M12 12C12 6 17 3 17 3s0 5-5 9"/></svg><span data-i18n="chat_crop">Crop Management</span>
+            </li>
+            <li class="topic-item" data-topic="disease">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span data-i18n="chat_disease">Disease Diagnosis</span>
+            </li>
+            <li class="topic-item" data-topic="products">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg><span data-i18n="chat_products">Product Advice</span>
+            </li>
+            <li class="topic-item" data-topic="soil">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg><span data-i18n="chat_soil">Soil &amp; Fertilizers</span>
+            </li>
+            <li class="topic-item" data-topic="water">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg><span data-i18n="chat_water">Water &amp; Irrigation</span>
+            </li>
+            <li class="topic-item" data-topic="weather">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg><span data-i18n="chat_weather">Weather &amp; Climate</span>
+            </li>
+            <li class="topic-item" data-topic="sim">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span data-i18n="chat_sim_help">Simulation Help</span>
+            </li>
+          </ul>
+        </div>
+        <div class="chat-sidebar-section">
+          <div class="sidebar-label" data-i18n="chat_quick">Quick Questions</div>
+          <div class="quick-questions">
+            <button class="quick-btn" onclick="sendQuickQuestion('My tomatoes have yellow leaves — what could be wrong?')" data-i18n="chat_q1">Yellow tomato leaves</button>
+            <button class="quick-btn" onclick="sendQuickQuestion('What fertilizer should I use for wheat in sandy soil?')" data-i18n="chat_q2">Fertilizer for wheat</button>
+            <button class="quick-btn" onclick="sendQuickQuestion('How often should I irrigate pepper plants in an arid climate?')" data-i18n="chat_q3">Pepper irrigation</button>
+            <button class="quick-btn" onclick="sendQuickQuestion('Which products treat powdery mildew on cucumber?')" data-i18n="chat_q4">Cucumber mildew</button>
+            <button class="quick-btn" onclick="sendQuickQuestion('Explain how to use the 3D simulation feature')" data-i18n="chat_q5">Using 3D simulation</button>
+          </div>
+        </div>
+        <div class="chat-sidebar-section" id="locationBadgeWrap" style="display:none">
+          <div class="sidebar-label" data-i18n="chat_your_loc">Your Location</div>
+          <div class="location-badge" id="locationBadge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="locationText"></span>
+          </div>
+        </div>
+      </aside>
+      <div class="chat-main">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Tips empty state — hidden when first message is sent -->
+          <div class="chat-tips-panel" id="chatTipsPanel">
+            <div class="chat-tips-icon">
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="chat-tips-title" data-i18n="tips_title">LeafGuard AI Advisor</div>
+            <p class="chat-tips-sub" data-i18n="tips_sub">Upload a plant photo or ask a question to get started.</p>
+            <div class="chat-tips-grid">
+              <div class="chat-tip-card">
+                <span class="tip-icon">☀️</span>
+                <span class="tip-text" data-i18n="tips_1">Shoot in natural daylight — avoid harsh shadows</span>
+              </div>
+              <div class="chat-tip-card">
+                <span class="tip-icon">🔍</span>
+                <span class="tip-text" data-i18n="tips_2">Fill the frame with the leaf or affected area</span>
+              </div>
+              <div class="chat-tip-card">
+                <span class="tip-icon">📸</span>
+                <span class="tip-text" data-i18n="tips_3">Hold steady — blurry photos lower accuracy</span>
+              </div>
+              <div class="chat-tip-card">
+                <span class="tip-icon">🖼️</span>
+                <span class="tip-text" data-i18n="tips_4">Upload up to 4 images to compare multiple leaves</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <!-- Image preview strip -->
+          <div class="img-preview-row" id="imgPreviewRow"></div>
+          <!-- Input row -->
+          <div class="chat-input-row">
+            <input type="file" id="imageFileInput" accept="image/*" multiple style="display:none" onchange="handleImageSelect(this)">
+            <button class="img-upload-btn" onclick="document.getElementById('imageFileInput').click()" title="Attach image (up to 4)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+              </svg>
+            </button>
+            <textarea id="chatInput" class="chat-textarea" placeholder="Ask about your crops, diseases, or products..." data-i18n-ph="chat_ph" rows="1"></textarea>
+            <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PAGE: DASHBOARD =================== -->
+  <div class="page hidden" id="page-dashboard">
+    <div class="dashboard-layout">
+      <aside class="dashboard-sidebar">
+        <nav class="dash-nav">
+          <a href="#" class="dash-nav-item active" data-section="overview" onclick="setDashSection('overview');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span data-i18n="dash_overview">Overview</span>
+          </a>
+          <a href="#" class="dash-nav-item" data-section="fields" onclick="setDashSection('fields');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <span data-i18n="dash_fields">My Fields</span>
+          </a>
+          <a href="#" class="dash-nav-item" data-section="orders" onclick="setDashSection('orders');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+            <span data-i18n="dash_orders_nav">Orders</span>
+          </a>
+          <a href="#" class="dash-nav-item" data-section="sims" onclick="setDashSection('sims');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <span data-i18n="dash_sims">Simulations</span>
+          </a>
+          <a href="#" class="dash-nav-item" data-section="analytics" onclick="setDashSection('analytics');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span data-i18n="dash_analytics">Analytics</span>
+          </a>
+          <a href="#" class="dash-nav-item" onclick="goPage('chat');return false;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span data-i18n="dash_ai">AI Advisor</span>
+          </a>
+        </nav>
+      </aside>
+      <div class="dashboard-main">
+        <div class="dash-header">
+          <div>
+            <h1 class="dash-welcome" id="dashGreeting">Good morning</h1>
+            <p class="dash-sub">Simulation Day <span id="simDay">1</span> &nbsp;&middot;&nbsp; <span id="dashDate"></span></p>
+          </div>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card" style="--stripe:#5a9e3c"><div class="kpi-stripe"></div><div class="kpi-label" data-i18n="kpi_health">Avg Plant Health</div><div class="kpi-value" id="kpiHealth">—</div><div class="kpi-trend" data-i18n="kpi_from_sim">From simulation</div></div>
+          <div class="kpi-card" style="--stripe:#c9a84c"><div class="kpi-stripe"></div><div class="kpi-label" data-i18n="kpi_yield">Estimated Yield</div><div class="kpi-value" id="kpiYield">—</div><div class="kpi-trend" data-i18n="kpi_projected">Projected</div></div>
+          <div class="kpi-card" style="--stripe:#4a7ec9"><div class="kpi-stripe"></div><div class="kpi-label" data-i18n="kpi_orders">Orders This Month</div><div class="kpi-value" id="kpiOrders">3</div><div class="kpi-trend" data-i18n="kpi_last30">Last 30 days</div></div>
+          <div class="kpi-card" style="--stripe:#9a6cc9"><div class="kpi-stripe"></div><div class="kpi-label" data-i18n="kpi_cart">Items in Cart</div><div class="kpi-value" id="kpiCart">0</div><div class="kpi-trend" id="kpiCartTotal">SAR 0</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-header" data-i18n="dash_recent">Recent Orders</div>
+            <div class="order-list">
+              <div class="order-row"><div class="order-icon" style="background:#1a3020;color:#5a9e3c">BC</div><div class="order-info"><div class="order-name">Bacteria Clear Universal</div><div class="order-date">Jun 3, 2026</div></div><div class="order-price">SAR 170</div><div class="order-badge delivered">Delivered</div></div>
+              <div class="order-row"><div class="order-icon" style="background:#1a2035;color:#4a7ec9">IM</div><div class="order-info"><div class="order-name">10% Imidacloprid</div><div class="order-date">Jun 1, 2026</div></div><div class="order-price">SAR 85</div><div class="order-badge transit">In Transit</div></div>
+              <div class="order-row"><div class="order-icon" style="background:#3d2a1a;color:#b8764a">VR</div><div class="order-info"><div class="order-name">Vigorous Root Growth</div><div class="order-date">May 28, 2026</div></div><div class="order-price">SAR 150</div><div class="order-badge delivered">Delivered</div></div>
+              <div class="order-row"><div class="order-icon" style="background:#2a1a35;color:#9a6cc9">BR</div><div class="order-info"><div class="order-name">Biostimulant Regulator A</div><div class="order-date">May 22, 2026</div></div><div class="order-price">SAR 160</div><div class="order-badge pending">Pending</div></div>
+            </div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-header" data-i18n="dash_activity">Field Activity</div>
+            <div class="activity-list">
+              <div class="activity-row"><div class="activity-dot" style="background:#5a9e3c"></div><div class="activity-text">Irrigation cycle completed — North Field</div><div class="activity-time">2h ago</div></div>
+              <div class="activity-row"><div class="activity-dot" style="background:#c9a84c"></div><div class="activity-text">Fertilizer applied — Bacteria Clear Universal</div><div class="activity-time">5h ago</div></div>
+              <div class="activity-row"><div class="activity-dot" style="background:#4a7ec9"></div><div class="activity-text">Soil moisture sensor reading: 34%</div><div class="activity-time">8h ago</div></div>
+              <div class="activity-row"><div class="activity-dot" style="background:#c94a4a"></div><div class="activity-text">Disease alert: early blight on tomato plot</div><div class="activity-time">1d ago</div></div>
+              <div class="activity-row"><div class="activity-dot" style="background:#3d6b2a"></div><div class="activity-text">Simulation run #7 completed — Day 42</div><div class="activity-time">1d ago</div></div>
+              <div class="activity-row"><div class="activity-dot" style="background:#9a6cc9"></div><div class="activity-text">New product added: Root Nematode Clear</div><div class="activity-time">2d ago</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== PAGE: MY ORDERS =================== -->
+  <div class="page hidden" id="page-orders">
+    <div class="orders-layout">
+
+      <!-- Sidebar: orders list -->
+      <aside class="orders-sidebar">
+        <div class="orders-sidebar-head">
+          <div class="sidebar-label" data-i18n="orders_label">My Orders</div>
+          <span class="orders-count-badge" id="ordersCountBadge"></span>
+        </div>
+        <div id="ordersList" class="orders-list"></div>
+      </aside>
+
+      <!-- Main: tracking view -->
+      <div class="orders-main">
+
+        <!-- Empty state -->
+        <div id="ordersEmptyState" class="orders-empty-state">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#3d6b2a" stroke-width="1.2" stroke-linecap="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 01-8 0"/>
+          </svg>
+          <p data-i18n="orders_empty_p">Select an order from the list to track it</p>
+          <span data-i18n="orders_empty_s">Your placed orders will appear here</span>
+        </div>
+
+        <!-- Tracking view — shown when an order is selected -->
+        <div id="orderTrackingView" class="order-tracking-view hidden">
+
+          <div class="tracking-header">
+            <div>
+              <div class="tracking-order-id" id="trackingOrderId">Order #—</div>
+              <div class="tracking-status-lbl" id="trackingStatusLbl">—</div>
+            </div>
+            <div class="tracking-elapsed" id="trackingElapsed"></div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="tracking-progress-wrap">
+            <div class="tracking-progress-bar" id="trackingProgressBar" style="width:0%"></div>
+          </div>
+
+          <!-- Leaflet map -->
+          <div id="trackingMap" class="tracking-map"></div>
+
+          <!-- Steps + Items -->
+          <div class="tracking-bottom">
+            <div class="tracking-panel">
+              <div class="tracking-panel-title" data-i18n="tracking_delivery">Delivery Status</div>
+              <ul id="trackingSteps" class="tracking-steps-list"></ul>
+            </div>
+            <div class="tracking-panel">
+              <div class="tracking-panel-title" data-i18n="tracking_items">Order Items</div>
+              <ul id="trackingItems" class="tracking-items-list"></ul>
+            </div>
+          </div>
+
+        </div><!-- /orderTrackingView -->
+      </div><!-- /orders-main -->
+    </div><!-- /orders-layout -->
+  </div>
+
+  <!-- =================== CART DRAWER =================== -->
+  <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-header">
+      <h2 class="cart-title">Your Cart</h2>
+      <button class="cart-close" onclick="toggleCart()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="cart-items"  id="cartItems"></div>
+    <div class="cart-footer" id="cartFooter"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

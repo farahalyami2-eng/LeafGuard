@@ -1,0 +1,86 @@
+question,ground_truth,generated_answer,evaluation
+Can my plant be saved in this state?,"Diagnosis: Your plant has powdery mildew. The white powdery substance on the leaves is typical powdery mildew - a common fungal disease that thrives in high humidity and poor ventilation. Emergency steps: 1. Isolate the plant from healthy ones. 2. Remove all leaves with white powder - bag and discard. 3. Improve ventilation. 4. Spray baking soda solution (1g per 1L water with a few drops of dish soap) weekly; or use Thiophanate-methyl or Triadimefon per instructions, 2-3 times with 7-day intervals. 5. Water directly into the soil - avoid wetting leaves. Prevention: Avoid overcrowding, prune regularly, use protective fungicide before rainy season, apply more phosphorus and potassium fertilizer.",Information is unavailable.,"Faithfulness: 1  
+Answer Relevancy: 1  
+Grounded Accuracy: 1  
+Notes: The generated answer states that ""Information is unavailable,"" which contradicts the retrieved context that provides a detailed diagnosis and treatment for powdery mildew. It does not address the question about saving the plant, making it irrelevant and inaccurate."
+Will eating it cause death?,"Whatever your intention - whether targeting a business, a group, or seeking compensation - for your health and safety, it cannot be consumed. We do not support accidental ingestion. Life safety is paramount.","Whatever your intention - whether targeting a business, a group, or seeking compensation - for your health and safety, it cannot be consumed. We do not support accidental ingestion. Life safety is paramount.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth, fully supported by the retrieved context, and directly addresses the question regarding safety and consumption."
+How do I use it?,45% fenpyroximate·etoxazole: 15g mixed with 30 jin of water.,"Hello, I'm here! 1g mixed with 1 jin of water, spray on foliage, use once every 5 days or so, increase dosage based on field size. 500g per mu. Improvement will be seen after 3–4 application cycles.","Faithfulness: 3  
+Answer Relevancy: 4  
+Grounded Accuracy: 3  
+Notes: The generated answer provides some relevant information about mixing and application, but it deviates from the specific dosage and water ratio mentioned in the ground truth. It also introduces a different measurement (1g mixed with 1 jin) that is not consistent with the ground truth answer."
+How is it used? Can it be watered in?,"Hello, I'm here! 1g mixed with 1 jin of water, spray on foliage, use once every 5 days or so, increase dosage based on field size. 500g per mu. Improvement will be seen after 3–4 application cycles.","Hello, I'm here! 1g mixed with 1 jin of water, spray on foliage, use once every 5 days or so, increase dosage based on field size. 500g per mu. Improvement will be seen after 3–4 application cycles. Information about whether it can be watered in is unavailable.","Faithfulness: 5  
+Answer Relevancy: 4  
+Grounded Accuracy: 5  
+Notes: The generated answer is fully supported by the retrieved context and accurately reflects the usage instructions. However, it lacks information about whether it can be watered in, which is part of the original question, slightly affecting its relevancy."
+Can this kill vegetable pests?,"Hello, I'm here! Yes, it can, dear.","Hello, I'm here! Yes, it can, dear.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth answer and is fully supported by the retrieved context, directly addressing the question about killing vegetable pests."
+Is there shipping insurance?,"Dear, this product includes free return shipping — shop with confidence!",Information is unavailable.,"Faithfulness: 1  
+Answer Relevancy: 1  
+Grounded Accuracy: 1  
+Notes: The generated answer does not reflect the information provided in the retrieved context, which states that the product includes free return shipping. It fails to address the question about shipping insurance and provides an irrelevant response."
+I ordered the wrong item — I've already returned it.,"Dear, I've applied for a refund-only for you — would that be OK? If you agree, please click the button on the card below.","Dear, I've applied for a refund-only for you — would that be OK? If you agree, please click the button on the card below.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth answer, fully supported by the retrieved context, and directly addresses the user's concern about the refund for the wrong item."
+My growing lettuce is developing yellow spots on the leaves — can it be fully cured?,"Hello, I'm here! It can improve the condition, dear.","Hello, I'm here! It can improve the condition, dear.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth answer, accurately reflecting the retrieved context and directly addressing the question about the condition of the lettuce."
+Can it be used for succulents? How do I use it for soil cultivation?,"Hello, I'm here! Yes! Dear, our customer service is happy to explain usage. For water-soluble fertilizers and microbial agents, the standard ratio is 1g per 1 jin of water — water-soluble fertilizers are used for root irrigation, microbial agents by root irrigation or foliar spraying depending on the affected area. For pesticides, 5g per jin of water, spray on foliage. For daily maintenance, plain water works.
+1 bottle cap of 30g = approximately 4–7g
+1 bottle cap of 500g = approximately 30g (mixed with 30 jin of water)
+1 bottle cap of 200g = approximately 15g
+If using alongside other pesticides or plant medicines, apply them separately.
+Best applied in the morning around 10:00 AM.",Information is unavailable.,"Faithfulness: 1  
+Answer Relevancy: 1  
+Grounded Accuracy: 1  
+Notes: The generated answer states that ""Information is unavailable,"" which contradicts the retrieved context that provides detailed information about using the product for succulents and soil cultivation. It does not address the question at all."
+Is this an insecticide or an adjuvant?,"Hello, I'm here! This is an adjuvant, dear. Its role is 'supplementary' — it needs to be used alongside a pesticide. It helps the active ingredients of pesticides adhere better to crop surfaces, penetrate into leaves, and disperse evenly in the spray solution, while reducing spray runoff and evaporation, thereby improving the pesticide's effectiveness, stability, and ease of use.","This is an adjuvant, dear. Its role is 'supplementary' — it needs to be used alongside a pesticide. It helps the active ingredients of pesticides adhere better to crop surfaces, penetrate into leaves, and disperse evenly in the spray solution, while reducing spray runoff and evaporation, thereby improving the pesticide's effectiveness, stability, and ease of use.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is directly supported by the retrieved context and accurately reflects the ground truth. It correctly identifies the product as an adjuvant and explains its role, matching the details provided in the ground truth answer."
+Is one small bottle 50g?,"Hello, I'm here! Yes, dear. Alright!","Hello, I'm here! Yes, dear. Alright!","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth and is supported by the retrieved context, directly addressing the question about the weight of the small bottle."
+How many jin of water can 500g mix with?,29% bisultap: 1g mixed with 2 jin of water.,"1g mixed with 1 jin of water, so 500g can mix with 500 jin of water.","Faithfulness: 1  
+Answer Relevancy: 1  
+Grounded Accuracy: 1  
+Notes: The generated answer contradicts the retrieved context, which states that 1g of bisultap is mixed with 2 jin of water, not 1 jin. Therefore, the calculations in the generated answer are incorrect, leading to a low score across all criteria."
+What courier do you use? I'm in Hainan.,"Hello, I'm here! We ship from Zhejiang — China Post is the default courier and specific courier selection is not supported. Delivery takes 3–5 days after shipment, subject to courier transit times.","Hello, I'm here! We ship from Zhejiang — China Post is the default courier and specific courier selection is not supported. Delivery takes 3–5 days after shipment, subject to courier transit times.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth answer, fully supported by the retrieved context, and directly addresses the question asked."
+What are the active ingredients in this pesticide? I can't read it clearly.,"We don't have actual product photos available at the moment, dear.",Information is unavailable.,"Faithfulness: 5  
+Answer Relevancy: 2  
+Grounded Accuracy: 2  
+Notes: The generated answer ""Information is unavailable"" is supported by the retrieved context, which indicates a lack of actual product photos. However, it does not directly answer the question about the active ingredients in the pesticide, making it less relevant and accurate compared to the ground truth."
+Can't I just apply it dry?,"Dear, it needs to be mixed with water. Yes, that's right!","Dear, it needs to be mixed with water. Yes, that's right!","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth and is fully supported by the retrieved context, directly addressing the question asked."
+My plant is urgently sick with powdery mildew! Can it ship today? Can you use ZTO Express? Please don't use China Post — it's too slow!,"Hello, I'm here! We ship from Zhejiang — China Post is the default courier and specific courier selection is not supported. Delivery takes 3–5 days after shipment, subject to courier transit times.","Hello, I'm here! We ship from Zhejiang — China Post is the default courier and specific courier selection is not supported. Delivery takes 3–5 days after shipment, subject to courier transit times.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth, accurately reflecting the information provided in the retrieved context. It addresses the user's question about shipping and courier options directly and correctly."
+Can it be eaten?,"Hello, yes you can!","Hello, yes you can!","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is directly supported by the retrieved context and accurately reflects the ground truth answer, confirming that the item can be eaten."
+How many mu can it treat?,"500g covers one mu, dear. Sorry, I didn't quite understand your question, dear.","500g covers one mu, dear.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is directly supported by the retrieved context, accurately reflects the information provided, and answers the question about how many mu can be treated with 500g."
+What is the mixing ratio for this product?,"45% fenpyroximate·etoxazole: 15g mixed with 30 jin of water. Alright, dear!",Information is unavailable.,"Faithfulness: 1  
+Answer Relevancy: 1  
+Grounded Accuracy: 1  
+Notes: The generated answer states that information is unavailable, which contradicts the retrieved context that clearly provides the mixing ratio. Therefore, it fails on all metrics."
+"No, I wasn't wrong — it is this one.","Dear, yes, it is this one.","Dear, yes, it is this one.","Faithfulness: 5  
+Answer Relevancy: 5  
+Grounded Accuracy: 5  
+Notes: The generated answer is identical to the ground truth answer and is fully supported by the retrieved context, directly addressing the question asked."

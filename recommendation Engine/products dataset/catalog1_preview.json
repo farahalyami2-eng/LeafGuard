@@ -1,0 +1,63 @@
+{
+  "shape": [
+    76,
+    3
+  ],
+  "columns": [
+    "Primary Category",
+    "Secondary Category",
+    "Product Name"
+  ],
+  "sample": [
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "10% Glufosinate-Ammonium"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "10% Glufosinate-Amine"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "24% Mesotrione"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "50% Chlorosulfuron"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "75% Metsulfuron-Methyl"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "Ethyl Carfentrazone"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "Aminopyralid"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "33% Glyphosate Ammonium Salt"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Herbicides",
+      "Product Name": "High-efficiency Flupyrsulfuron"
+    },
+    {
+      "Primary Category": "Chemical Pesticides",
+      "Secondary Category": "Fungicides",
+      "Product Name": "1.8% Cymoxanil Acetate"
+    }
+  ]
+}

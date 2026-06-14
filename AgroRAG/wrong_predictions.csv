@@ -1,0 +1,7 @@
+question,true_category,predicted_category
+"One bottle - how many jin of water? Hello! 1g per 1 jin of water, spray on leaf surface, use every ~5 days. Increase quantity based on field size - 500g per mu. Improvement appears after 3-4 cycles. cat4_safety_sensitive_real_EN",cat4_safety_sensitive,cat1_usage_product
+"Is this product safe for bees? Hello! It is low-toxicity, dear, but avoid spraying during peak pollination hours. cat1_usage_product_real_english",cat1_usage_product,cat4_safety_sensitive
+"Please ship via China Post, thank you. It is China Post, dear. Dear, thank you for your review — we've sent you a 0.60 yuan cashback via [WeChat]. You can check it there. Thank you for your support! cat2_diagnosis_real_english",cat2_diagnosis,cat3_aftersales_logistics
+"I mixed 1g with 5 jin of water — is that too weak? Dear, yes — that's too diluted. The correct ratio is 1g per 1 jin of water. Please redo the mix. cat2_diagnosis_real_english",cat2_diagnosis,cat1_usage_product
+"How many jin of water per bottle? Hello, I'm here! 29% bisultap: 1g mixed with 2 jin of water. cat3_aftersales_logistics_real_english",cat3_aftersales_logistics,cat2_diagnosis
+"10g per sachet sensitiser. Dear, we're sorry we couldn't meet your expectations — would it be OK if we offered you a 1 yuan red packet as compensation? cat3_aftersales_logistics_real_english",cat1_usage_product,cat3_aftersales_logistics

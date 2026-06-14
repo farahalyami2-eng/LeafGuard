@@ -1,0 +1,227 @@
+/* ============================================================
+   LEAFGUARD — AUTH.CSS  (login / signup page)
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --dark:   #111a0d;
+  --moss:   #3d6b2a;
+  --leaf:   #5a9e3c;
+  --sprout: #8ecf5e;
+  --gold:   #c9a84c;
+  --ink:    #0e1209;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  background: var(--dark);
+  color: #fff;
+  cursor: none;
+  overflow: hidden;
+}
+
+/* ---- CURSOR ---- */
+.cursor-dot, .cursor-ring {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.cursor-dot  { width: 6px; height: 6px; background: var(--sprout); mix-blend-mode: screen; }
+.cursor-ring { width: 28px; height: 28px; border: 1.5px solid var(--sprout); mix-blend-mode: screen; transition: width .15s, height .15s; }
+body.cursor-hover .cursor-ring { width: 40px; height: 40px; }
+
+/* ---- BACKGROUND ---- */
+.auth-grain {
+  position: fixed; inset: -100px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  pointer-events: none;
+  animation: grain .12s steps(2) infinite;
+  z-index: 0;
+}
+@keyframes grain {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(-4px,-4px); }
+  50%  { transform: translate(4px,4px); }
+  75%  { transform: translate(-3px,3px); }
+  100% { transform: translate(3px,-3px); }
+}
+
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(61,107,42,.45) 0%, transparent 70%);
+  top: -120px; left: -100px;
+  animation: floatA 9s ease-in-out infinite alternate;
+}
+.orb-2 {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(90,158,60,.28) 0%, transparent 70%);
+  bottom: -60px; right: -60px;
+  animation: floatB 11s ease-in-out infinite alternate;
+}
+.orb-3 {
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(201,168,76,.18) 0%, transparent 70%);
+  top: 40%; left: 60%;
+  animation: floatC 13s ease-in-out infinite alternate;
+}
+@keyframes floatA { from { transform: translate(0,0);       } to { transform: translate(28px,22px); } }
+@keyframes floatB { from { transform: translate(0,0);       } to { transform: translate(-22px,18px); } }
+@keyframes floatC { from { transform: translate(0,0);       } to { transform: translate(18px,-28px); } }
+
+/* ---- PAGE LAYOUT ---- */
+.auth-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 24px;
+}
+
+/* ---- LANG SWITCHER ---- */
+.auth-lang-switcher { display:flex;justify-content:center;gap:4px;margin-bottom:16px; }
+.auth-lang-switcher .lang-btn {
+  padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;
+  color:rgba(255,255,255,.35);background:transparent;transition:all .15s;cursor:pointer;font-family:inherit;
+}
+.auth-lang-switcher .lang-btn:hover { color:rgba(255,255,255,.8); }
+.auth-lang-switcher .lang-btn.active { color:#fff;background:rgba(255,255,255,.12); }
+
+/* RTL */
+[dir="rtl"] .auth-page { direction: rtl; }
+
+/* ---- BRAND ---- */
+.auth-brand { text-align: center; }
+.auth-logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.6rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 8px;
+  display:flex;justify-content:center;
+}
+.auth-logo-img { height:160px;width:auto;object-fit:contain; }
+.logo-leaf  { color: var(--sprout); }
+.logo-guard { color: rgba(255,255,255,.9); }
+.auth-tagline {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.3);
+}
+
+/* ---- CARD ---- */
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 20px;
+  padding: 32px;
+  backdrop-filter: blur(20px);
+}
+
+/* ---- TABS ---- */
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,.05);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 28px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 9px;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.4);
+  cursor: none;
+  transition: background .18s, color .18s;
+}
+.auth-tab.active { background: rgba(255,255,255,.1); color: #fff; }
+.auth-tab:hover:not(.active) { color: rgba(255,255,255,.65); }
+
+/* ---- FORM ---- */
+.auth-form { display: flex; flex-direction: column; gap: 18px; }
+.auth-form.hidden { display: none; }
+
+.form-group { display: flex; flex-direction: column; gap: 7px; }
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+}
+
+.input-wrap { position: relative; }
+.input-icon {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,.25);
+  pointer-events: none;
+}
+.form-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  color: rgba(255,255,255,.9);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.form-input:focus  { border-color: var(--leaf); background: rgba(255,255,255,.07); }
+.form-input::placeholder { color: rgba(255,255,255,.2); }
+
+.form-error {
+  font-size: 0.8rem;
+  color: #f87171;
+  min-height: 18px;
+}
+
+.form-submit {
+  margin-top: 4px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  background: var(--leaf);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background .18s, transform .12s;
+  cursor: none;
+}
+.form-submit:hover:not(:disabled) { background: var(--moss); transform: translateY(-1px); }
+.form-submit:disabled { opacity: .5; }
+
+/* ---- FOOTER ---- */
+.auth-footer {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,.18);
+  letter-spacing: 0.03em;
+}
