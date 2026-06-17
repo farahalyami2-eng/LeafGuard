@@ -1,6 +1,7 @@
 <p align="center">
   <!-- HERO BANNER IMAGE HERE -->
 </p>
+
 <p align="center">
   <a href="#overview"><img src="https://img.shields.io/badge/status-active%20development-10b981?style=flat-square"/></a>
   <a href="#ai-models"><img src="https://img.shields.io/badge/models-5%20AI%20models-8b5cf6?style=flat-square"/></a>
@@ -18,6 +19,7 @@
 ---
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Pipeline Architecture](#pipeline-architecture)
 - [AI Models](#ai-models)
@@ -52,11 +54,18 @@ LeafGuard solves a real problem: a farmer takes a photo of a sick leaf and doesn
   <img width="680" height="660" alt="Pipeline Architecture" src="https://github.com/user-attachments/assets/9b5343d4-979e-4df9-b47a-5cf6b1462612" />
 </p>
 
-The pipeline is a **conditional branching flow** — what happens after the health check depends entirely on the result. On the **healthy path**, only the crop identifier runs, then growth-support recommendations are returned. On the **diseased path**, YOLO segmentation localises the lesion region, the disease classifier identifies the type, and the crop identifier runs in parallel via `ThreadPoolExecutor` to save latency — the recommendation engine then combines both results. A `--datepalm` flag swaps the 9-class disease classifier for a specialist 3-class model (`brown_spots`, `healthy`, `white_scale`).
+The pipeline is a **conditional branching flow** — what happens after the health check depends entirely on the result:
+- **Healthy path:** only the crop identifier runs, then growth-support recommendations are returned
+- **Diseased path:** YOLO segmentation localises the disease region → disease classifier identifies the type → crop identifier runs **in parallel** with the disease classifier (using `ThreadPoolExecutor`) to save latency → recommendation engine combines both results
+- **Date palm mode:** a `--datepalm` flag swaps the 9-class disease classifier for a specialist 3-class model (`brown_spots`, `healthy`, `white_scale`)
 
 ---
 
 ## AI Models
+
+<!-- MODEL CARDS IMAGE HERE -->
+
+<!-- ACCURACY CHART IMAGE HERE -->
 
 | Step | Model | Architecture | Classes | Score | Weight |
 |------|-------|-------------|---------|-------|--------|
@@ -72,11 +81,9 @@ The pipeline is a **conditional branching flow** — what happens after the heal
 
 ## Agent Architecture
 
-<p align="center">
-  <img width="680" height="660" alt="Agent Architecture" src="https://github.com/user-attachments/assets/9b5343d4-979e-4df9-b47a-5cf6b1462612" />
-</p>
+<!-- AGENT DIAGRAM IMAGE HERE -->
 
-The agent is built on **GPT-4o-mini with function calling** (`parallel_tool_calls=True`) and routes every request into one of four scenarios. Image queries (A & B) trigger computer-vision tools — crop and disease classifiers run in parallel via `ThreadPoolExecutor` to minimize latency. Text-only queries skip the vision stack entirely: if the crop and disease are stated explicitly (C), the recommendation engine is called directly; general knowledge questions (D) go straight to the AgroRAG knowledge base. All paths that involve a disease result converge on `get_product_recommendations`. Torch, torchvision, and timm are lazily imported — they load only when an image tool fires, keeping text-only startup fast.
+The agent uses GPT-4o-mini with OpenAI's function calling API and `parallel_tool_calls=True`. It handles four distinct scenarios automatically:
 
 | Scenario | Trigger | Tool chain |
 |----------|---------|------------|
@@ -85,9 +92,16 @@ The agent is built on **GPT-4o-mini with function calling** (`parallel_tool_call
 | **C** | Text only — crop and disease stated explicitly | `get_product_recommendations` directly, no image tools called |
 | **D** | General knowledge question (dosage, safety, application, logistics) | `answer_agricultural_question` → AgroRAG knowledge base |
 
+**Design details worth noting:**
+- `torch` / `torchvision` / `timm` are lazily imported — they only load when an image tool actually fires, keeping startup fast for text-only queries
+- All tool calls in a single LLM round are dispatched to a `ThreadPoolExecutor` so parallel calls (e.g. crop + disease) run concurrently
+- The agent never calls the same tool twice per turn, and never calls both `classify_disease` and `classify_datepalm_disease` in the same turn
+
 ---
 
 ## Sample Output
+
+<!-- SAMPLE OUTPUT IMAGE HERE -->
 
 **Full output schema from `pipeline.analyze()`:**
 
@@ -128,6 +142,7 @@ Loads all models once via `LeafGuardPipeline`, exposes `analyze()` for repeated 
 
 ```python
 from pipeline import LeafGuardPipeline
+
 pipe = LeafGuardPipeline()
 result = pipe.analyze("leaf.jpg")                          # standard
 result = pipe.analyze("palm.jpg", datepalm_mode=True)      # date palm
@@ -148,6 +163,7 @@ LLM-orchestrated agent. Handles images, text, and mixed queries in a single `cha
 
 ```python
 from agent import LeafGuardAgent
+
 agent = LeafGuardAgent()
 
 # Image diagnosis
