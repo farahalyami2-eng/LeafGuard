@@ -58,6 +58,7 @@
         <li><a href="#" class="nav-link"         data-page="chat"      onclick="goPage('chat');return false;"      data-i18n="nav_chat">AI Advisor</a></li>
         <li><a href="#" class="nav-link"         data-page="dashboard" onclick="goPage('dashboard');return false;" data-i18n="nav_dashboard">Dashboard</a></li>
         <li><a href="#" class="nav-link"         data-page="orders"    onclick="goPage('orders');return false;"    data-i18n="nav_orders">My Orders</a></li>
+        <li><a href="#" class="nav-link"         data-page="monitor"   onclick="goPage('monitor');return false;">Field Monitor</a></li>
       </ul>
       <div class="nav-right">
         <div class="lang-switcher">
@@ -167,16 +168,8 @@
   </div>
 
   <!-- =================== PAGE: SIMULATION =================== -->
-  <div class="page hidden" id="page-sim">
-    <div class="sim-placeholder" id="simulation-mount">
-      <div class="sim-placeholder-inner">
-        <div class="sim-placeholder-icon">
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#3d6b2a" stroke-width="1.2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        </div>
-        <p class="sim-placeholder-text" data-i18n="sim_loads">Simulation loads here</p>
-        <p class="sim-placeholder-sub" data-i18n="sim_connect">Connect the 3D simulation module to begin</p>
-      </div>
-    </div>
+  <div class="page hidden" id="page-sim" style="padding:0;overflow:hidden;">
+    <iframe id="simFrame" style="width:100%;height:100%;border:none;display:block;" title="AgroMind 3D Field Simulation" allowfullscreen></iframe>
   </div>
 
   <!-- =================== PAGE: SHOP =================== -->
@@ -460,6 +453,137 @@
         </div><!-- /orderTrackingView -->
       </div><!-- /orders-main -->
     </div><!-- /orders-layout -->
+  </div>
+
+  <!-- =================== PAGE: FIELD MONITOR =================== -->
+  <div class="page hidden" id="page-monitor">
+    <div class="monitor-wrap">
+
+      <div class="monitor-header">
+        <div class="monitor-title-row">
+          <h1 class="monitor-title">Field Monitor <span class="preview-badge">Preview</span></h1>
+          <div class="monitor-live-badge">
+            <span class="monitor-dot"></span>
+            <span>Simulated Feed</span>
+          </div>
+        </div>
+        <p class="monitor-sub">IoT sensor dashboard &mdash; ESP32 integration coming soon</p>
+      </div>
+
+      <!-- Sensor cards -->
+      <div class="sensor-grid">
+        <div class="sensor-card" id="sc-moisture">
+          <div class="sensor-icon-wrap" style="background:#1a3020;color:#5a9e3c">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+          </div>
+          <div class="sensor-label">Soil Moisture</div>
+          <div class="sensor-value-row"><span class="sensor-value" id="sv-moisture">—</span><span class="sensor-unit">%</span></div>
+          <div class="sensor-warn" id="sw-moisture">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Below threshold (35%)
+          </div>
+        </div>
+        <div class="sensor-card" id="sc-temp">
+          <div class="sensor-icon-wrap" style="background:#351a1a;color:#c94a4a">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z"/></svg>
+          </div>
+          <div class="sensor-label">Air Temperature</div>
+          <div class="sensor-value-row"><span class="sensor-value" id="sv-temp">—</span><span class="sensor-unit">°C</span></div>
+          <div class="sensor-warn" id="sw-temp">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Above threshold (38°C)
+          </div>
+        </div>
+        <div class="sensor-card" id="sc-humidity">
+          <div class="sensor-icon-wrap" style="background:#1a2035;color:#4a7ec9">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+          </div>
+          <div class="sensor-label">Humidity</div>
+          <div class="sensor-value-row"><span class="sensor-value" id="sv-humidity">—</span><span class="sensor-unit">%</span></div>
+          <div class="sensor-warn" id="sw-humidity">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Below threshold (30%)
+          </div>
+        </div>
+        <div class="sensor-card" id="sc-light">
+          <div class="sensor-icon-wrap" style="background:#3d2a1a;color:#c9a84c">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </div>
+          <div class="sensor-label">Light</div>
+          <div class="sensor-value-row"><span class="sensor-value" id="sv-light">—</span><span class="sensor-unit">lux</span></div>
+          <div class="sensor-warn" id="sw-light">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Below threshold (1500 lux)
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart + Pump -->
+      <div class="monitor-mid-row">
+        <div class="monitor-card monitor-chart-card">
+          <div class="monitor-card-header">
+            Soil Moisture Trend
+            <span class="chart-sub">Last 40 readings &middot; updates every 2s</span>
+          </div>
+          <canvas id="moistureChart" class="moisture-canvas"></canvas>
+          <div class="chart-legend">
+            <span class="legend-line-swatch"></span>Moisture &nbsp;&nbsp;
+            <span class="legend-dash-swatch"></span>35% watering threshold
+          </div>
+        </div>
+
+        <div class="monitor-card pump-card">
+          <div class="monitor-card-header">Irrigation Pump</div>
+          <div class="pump-status-display">
+            <div class="pump-icon-wrap" id="pumpIconWrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+            </div>
+            <div class="pump-state" id="pumpState">IDLE</div>
+            <div class="pump-sub" id="pumpSub">Moisture adequate</div>
+          </div>
+          <div class="pump-meta">
+            <div class="pump-meta-row">
+              <span>Auto mode</span>
+              <span class="pump-auto-badge">ON &lt;35% &middot; OFF &gt;60%</span>
+            </div>
+            <div class="pump-meta-row">
+              <span>Override</span>
+              <button class="pump-override-btn" id="pumpOverrideBtn" onclick="togglePumpOverride()">Force ON</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email alerts + Alert log -->
+      <div class="monitor-bottom-row">
+        <div class="monitor-card alerts-config-card">
+          <div class="monitor-card-header">Email Alerts</div>
+          <div class="alerts-toggle-row">
+            <span class="toggle-label">Send alerts via email</span>
+            <button class="toggle-btn" id="emailToggle" role="switch" aria-checked="false"
+                    onclick="toggleEmailAlerts()" aria-label="Toggle email alerts">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+          <div class="email-input-wrap">
+            <label class="email-field-label" for="alertEmail">Recipient</label>
+            <input type="email" id="alertEmail" class="alert-email-input" placeholder="farmer@example.com">
+          </div>
+          <div class="email-status" id="emailStatus"></div>
+        </div>
+
+        <div class="monitor-card alert-log-card">
+          <div class="monitor-card-header">
+            Alert Log
+            <span class="alert-count-badge" id="alertCountBadge">0</span>
+          </div>
+          <div class="alert-log-list" id="alertLogList">
+            <div class="alert-log-empty">No alerts yet &mdash; monitoring in progress</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- =================== CART DRAWER =================== -->

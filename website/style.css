@@ -815,6 +815,212 @@ body.cursor-hover .cursor-ring { width: 44px; height: 44px; border-color: var(--
 }
 .tracking-item-price { color:var(--moss);font-weight:700;font-size:.8rem;min-width:64px;text-align:right; }
 
+/* ============================================================
+   FIELD MONITOR PAGE
+   ============================================================ */
+#page-monitor { overflow-y: auto; }
+
+.monitor-wrap {
+  padding: 32px 40px 48px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.monitor-header { margin-bottom: 28px; }
+.monitor-title-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:5px; }
+.monitor-title {
+  font-family:'Instrument Serif', serif;
+  font-size:2rem; font-weight:400; color:var(--ink);
+  margin:0; display:flex; align-items:center; gap:10px;
+}
+.preview-badge {
+  font-family:'Cabinet Grotesk', sans-serif;
+  font-size:.58rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:#fff; background:var(--clay); padding:3px 10px; border-radius:20px;
+  vertical-align:middle;
+}
+.monitor-sub { font-size:.85rem; color:rgba(14,18,9,.45); margin:0; }
+.monitor-live-badge {
+  display:flex; align-items:center; gap:6px;
+  font-size:.72rem; font-weight:600; color:rgba(14,18,9,.45);
+  margin-left:auto;
+}
+.monitor-dot {
+  width:7px; height:7px; border-radius:50%; background:var(--sprout);
+  animation:monitorPulse 2s ease-in-out infinite;
+}
+@keyframes monitorPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Sensor grid ── */
+.sensor-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  margin-bottom:20px;
+}
+.sensor-card {
+  background:#fff; border-radius:14px; padding:20px;
+  box-shadow:0 1px 4px rgba(14,18,9,.06);
+  border:1.5px solid rgba(14,18,9,.06);
+  transition:border-color .25s, box-shadow .25s, background .25s;
+}
+.sensor-card.warn {
+  border-color:rgba(201,74,74,.3);
+  background:rgba(201,74,74,.03);
+  box-shadow:0 2px 14px rgba(201,74,74,.1);
+}
+.sensor-icon-wrap {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:12px;
+}
+.sensor-label {
+  font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:rgba(14,18,9,.4); margin-bottom:6px;
+}
+.sensor-value-row { display:flex; align-items:baseline; gap:4px; margin-bottom:4px; }
+.sensor-value {
+  font-family:'Instrument Serif', serif; font-size:2.4rem;
+  color:var(--ink); line-height:1; transition:color .25s;
+}
+.sensor-card.warn .sensor-value { color:#c94a4a; }
+.sensor-unit { font-size:.8rem; color:rgba(14,18,9,.4); font-weight:500; }
+.sensor-warn {
+  display:none; align-items:center; gap:4px;
+  font-size:.69rem; font-weight:600; color:#c94a4a; margin-top:8px;
+}
+.sensor-card.warn .sensor-warn { display:flex; }
+
+/* ── Middle row: chart + pump ── */
+.monitor-mid-row { display:grid; grid-template-columns:1fr 270px; gap:16px; margin-bottom:20px; }
+
+.monitor-card {
+  background:#fff; border-radius:14px; padding:22px;
+  box-shadow:0 1px 4px rgba(14,18,9,.06);
+  border:1.5px solid rgba(14,18,9,.06);
+}
+.monitor-card-header {
+  font-size:.68rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:rgba(14,18,9,.38); margin-bottom:16px;
+  display:flex; align-items:center; gap:8px;
+}
+.chart-sub {
+  font-weight:400; letter-spacing:0; text-transform:none;
+  color:rgba(14,18,9,.3); font-size:.68rem; margin-left:auto;
+}
+
+.moisture-canvas { width:100%; display:block; }
+.chart-legend {
+  display:flex; align-items:center; gap:5px;
+  font-size:.7rem; color:rgba(14,18,9,.4); margin-top:10px;
+}
+.legend-line-swatch {
+  display:inline-block; width:18px; height:2px;
+  background:var(--leaf); border-radius:2px;
+}
+.legend-dash-swatch {
+  display:inline-block; width:18px; height:0;
+  border-top:2px dashed var(--clay);
+}
+
+/* Pump card */
+.pump-card { display:flex; flex-direction:column; }
+.pump-status-display {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:6px; padding:16px 0 20px;
+}
+.pump-icon-wrap {
+  width:52px; height:52px; border-radius:50%; background:rgba(14,18,9,.06);
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(14,18,9,.35); transition:background .3s, color .3s;
+}
+.pump-icon-wrap.watering { background:rgba(90,158,60,.12); color:var(--leaf); }
+.pump-state {
+  font-family:'Cabinet Grotesk', sans-serif; font-weight:800;
+  font-size:1.15rem; letter-spacing:.07em; color:var(--ink); transition:color .3s;
+}
+.pump-state.watering { color:var(--leaf); }
+.pump-sub { font-size:.74rem; color:rgba(14,18,9,.42); text-align:center; }
+.pump-meta { border-top:1px solid rgba(14,18,9,.07); padding-top:12px; display:flex; flex-direction:column; gap:9px; }
+.pump-meta-row {
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:.74rem; color:rgba(14,18,9,.5);
+}
+.pump-auto-badge {
+  font-size:.63rem; font-weight:700; background:rgba(90,158,60,.1);
+  color:var(--moss); padding:2px 8px; border-radius:6px;
+}
+.pump-override-btn {
+  font-size:.7rem; font-weight:700; padding:4px 12px; border-radius:7px;
+  border:1.5px solid rgba(14,18,9,.1); cursor:pointer; background:#fff;
+  color:var(--ink); transition:all .2s;
+}
+.pump-override-btn:hover { border-color:var(--leaf); color:var(--leaf); }
+.pump-override-btn.active { background:var(--leaf); color:#fff; border-color:var(--leaf); }
+
+/* ── Bottom row: email + log ── */
+.monitor-bottom-row { display:grid; grid-template-columns:280px 1fr; gap:16px; }
+
+.alerts-toggle-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.toggle-label { font-size:.82rem; color:var(--ink); flex:1; font-weight:500; }
+.toggle-btn {
+  width:40px; height:22px; border-radius:11px; border:none; cursor:pointer;
+  background:rgba(14,18,9,.14); position:relative; transition:background .22s;
+  flex-shrink:0; padding:0;
+}
+.toggle-btn[aria-checked="true"] { background:var(--leaf); }
+.toggle-knob {
+  position:absolute; top:3px; left:3px;
+  width:16px; height:16px; border-radius:50%; background:#fff;
+  transition:transform .22s; box-shadow:0 1px 3px rgba(0,0,0,.18);
+}
+.toggle-btn[aria-checked="true"] .toggle-knob { transform:translateX(18px); }
+.email-input-wrap { margin-bottom:10px; }
+.email-field-label {
+  display:block; font-size:.67rem; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:rgba(14,18,9,.38); margin-bottom:5px;
+}
+.alert-email-input {
+  width:100%; padding:8px 12px; border-radius:8px; box-sizing:border-box;
+  border:1.5px solid rgba(14,18,9,.1); font-family:'Cabinet Grotesk', sans-serif;
+  font-size:.82rem; color:var(--ink); outline:none;
+  background:rgba(14,18,9,.02); transition:border-color .2s;
+}
+.alert-email-input:focus { border-color:var(--leaf); }
+.email-status { font-size:.72rem; color:var(--moss); font-weight:500; min-height:16px; }
+
+.alert-log-card { display:flex; flex-direction:column; }
+.alert-count-badge {
+  background:rgba(201,74,74,.1); color:#c94a4a; font-size:.63rem;
+  font-weight:700; padding:1px 7px; border-radius:10px;
+  font-family:'Cabinet Grotesk', sans-serif; text-transform:none; letter-spacing:.03em;
+}
+.alert-log-list { display:flex; flex-direction:column; max-height:200px; overflow-y:auto; }
+.alert-log-empty { font-size:.8rem; color:rgba(14,18,9,.32); padding:24px 0; text-align:center; }
+.alert-log-row {
+  display:flex; align-items:flex-start; gap:10px; padding:9px 0;
+  border-bottom:1px solid rgba(14,18,9,.05); font-size:.78rem;
+}
+.alert-log-row:last-child { border-bottom:none; }
+.alert-log-dot {
+  width:7px; height:7px; border-radius:50%; background:#c94a4a;
+  margin-top:5px; flex-shrink:0;
+}
+.alert-log-body { flex:1; }
+.alert-log-text { color:var(--ink); line-height:1.4; }
+.alert-log-emailed { font-size:.67rem; color:var(--moss); font-weight:600; margin-top:2px; }
+.alert-log-time { font-size:.67rem; color:rgba(14,18,9,.32); white-space:nowrap; flex-shrink:0; }
+
+/* ── Monitor responsive ── */
+@media (max-width:1100px) {
+  .sensor-grid { grid-template-columns:repeat(2,1fr); }
+  .monitor-mid-row { grid-template-columns:1fr; }
+  .monitor-bottom-row { grid-template-columns:1fr; }
+}
+@media (max-width:600px) {
+  .monitor-wrap { padding:20px 16px 40px; }
+  .sensor-grid { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .sensor-value { font-size:1.8rem; }
+}
+
 /* ---- RESPONSIVE ---- */
 @media (max-width:1100px) {
   .features-grid { grid-template-columns:repeat(2,1fr); }

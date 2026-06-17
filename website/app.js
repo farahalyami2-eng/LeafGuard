@@ -216,6 +216,10 @@ function goPage(name) {
     initOrdersPage();
     setTimeout(() => { if (_trackingMap) _trackingMap.invalidateSize(); }, 120);
   }
+  if (name === 'sim') {
+    const frame = document.getElementById('simFrame');
+    if (frame && !frame.getAttribute('src')) frame.src = '/simulation.html';
+  }
 }
 
 /* ============================================================
@@ -963,6 +967,241 @@ function initCursor() {
 /* ============================================================
    WINDOW GLOBALS (simulation integration hooks)
    ============================================================ */
+/* ============================================================
+   FIELD MONITOR — Simulated IoT sensor dashboard
+   Wrap goPage() so we can start/stop the sensor interval.
+   ============================================================ */
+const _mon = {
+  moisture: 58, temp: 33, humidity: 42, light: 2400,
+  history: [],        // rolling 40-reading moisture log
+  pumpOn: false,
+  pumpOverride: false,
+  emailOn: false,
+  alertEmail: '',
+  alertLog: [],
+  alertCooldowns: {}, // { key: lastTimestamp }
+  ticker: null,
+};
+
+// ────────────────────────────────────────────────────────────────────
+// SWAP POINT — replace fetchSensorReading() with a real HTTP fetch
+// when the ESP32 is connected, e.g.:
+//   const res = await fetch('http://esp32.local/api/sensors');
+//   return await res.json();
+// The rest of the monitor logic stays unchanged.
+// ────────────────────────────────────────────────────────────────────
+function fetchSensorReading() {
+  // Gentle drift simulation
+  const driftMoisture = _mon.pumpOn ? 0.9 : -0.5;
+  _mon.moisture = Math.max(10, Math.min(95, _mon.moisture + driftMoisture + (Math.random() - 0.5) * 0.7));
+  _mon.temp     = Math.max(18, Math.min(46, _mon.temp     + (Math.random() - 0.5) * 0.5));
+  _mon.humidity = Math.max(10, Math.min(95, _mon.humidity + (Math.random() - 0.5) * 0.9));
+  _mon.light    = Math.max(0,  Math.min(8000, _mon.light  + (Math.random() - 0.5) * 100));
+  return { moisture: _mon.moisture, temp: _mon.temp, humidity: _mon.humidity, light: _mon.light };
+}
+
+// Thresholds — readings that trigger a warning card state + alert
+const _THRESH = { moisture: 35, temp: 38, humidity: 30, light: 1500 };
+
+// Pump auto-hysteresis: turns ON below 35%, stays ON until above 60%
+function _updatePump(moisture) {
+  if (_mon.pumpOverride) return;
+  if (!_mon.pumpOn && moisture < 35) _mon.pumpOn = true;
+  if (_mon.pumpOn  && moisture > 60) _mon.pumpOn = false;
+}
+
+// Rate-limited alert checker (12 s cooldown per sensor type)
+function _checkAlerts(r) {
+  const now = Date.now();
+  const checks = [
+    { key:'moisture', label:'Soil moisture low', cond: r.moisture < _THRESH.moisture, val: r.moisture.toFixed(1) + '%' },
+    { key:'temp',     label:'Temperature high',  cond: r.temp     > _THRESH.temp,     val: r.temp.toFixed(1)     + '°C' },
+    { key:'humidity', label:'Humidity low',       cond: r.humidity < _THRESH.humidity, val: r.humidity.toFixed(1) + '%' },
+    { key:'light',    label:'Light insufficient', cond: r.light    < _THRESH.light,    val: Math.round(r.light)   + ' lux' },
+  ];
+  checks.forEach(c => {
+    if (!c.cond) return;
+    if (now - (_mon.alertCooldowns[c.key] || 0) < 12000) return;
+    _mon.alertCooldowns[c.key] = now;
+    // TODO: real email delivery — POST to a server-side endpoint here:
+    //   fetch('/api/alerts/send', { method:'POST', body: JSON.stringify({ to: _mon.alertEmail, message: c.label + ': ' + c.val }) })
+    //   Use Resend / SendGrid / SES on the server side, never from the browser.
+    _mon.alertLog.unshift({
+      text: c.label + ': ' + c.val,
+      time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }),
+      emailed: (_mon.emailOn && _mon.alertEmail) ? _mon.alertEmail : null,
+    });
+    if (_mon.alertLog.length > 60) _mon.alertLog.pop();
+  });
+}
+
+function _renderSensors(r) {
+  function card(id, rawVal, isWarn, decimals) {
+    const sc = document.getElementById('sc-' + id);
+    const sv = document.getElementById('sv-' + id);
+    if (!sc || !sv) return;
+    sv.textContent = rawVal.toFixed(decimals);
+    sc.classList.toggle('warn', isWarn);
+  }
+  card('moisture', r.moisture, r.moisture < _THRESH.moisture, 1);
+  card('temp',     r.temp,     r.temp     > _THRESH.temp,     1);
+  card('humidity', r.humidity, r.humidity < _THRESH.humidity, 1);
+  card('light',    r.light,    r.light    < _THRESH.light,    0);
+}
+
+function _renderPump() {
+  const state   = document.getElementById('pumpState');
+  const sub     = document.getElementById('pumpSub');
+  const iconWrp = document.getElementById('pumpIconWrap');
+  const btn     = document.getElementById('pumpOverrideBtn');
+  if (!state) return;
+  const on = _mon.pumpOn;
+  state.textContent = on ? 'WATERING' : 'IDLE';
+  state.classList.toggle('watering', on);
+  iconWrp && iconWrp.classList.toggle('watering', on);
+  if (sub) sub.textContent = _mon.pumpOverride
+    ? (on ? 'Manual override — pump forced ON' : 'Manual override — pump forced OFF')
+    : (on ? 'Auto: moisture below 35%' : 'Moisture adequate');
+  if (btn) {
+    btn.textContent = _mon.pumpOverride ? 'Cancel override' : (on ? 'Force OFF' : 'Force ON');
+    btn.classList.toggle('active', _mon.pumpOverride);
+  }
+}
+
+function _drawChart() {
+  const canvas = document.getElementById('moistureChart');
+  if (!canvas || !canvas.parentElement) return;
+  const W = canvas.parentElement.clientWidth - 44;
+  const H = 160;
+  if (W < 1) return;
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const hist = _mon.history;
+  if (hist.length < 2) return;
+
+  const pad = { t:10, r:8, b:10, l:28 };
+  const gW = W - pad.l - pad.r;
+  const gH = H - pad.t - pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Faint grid lines at 25 / 50 / 75 %
+  ctx.strokeStyle = 'rgba(14,18,9,.05)'; ctx.lineWidth = 1;
+  [25, 50, 75].forEach(pct => {
+    const y = pad.t + gH - (pct / 100) * gH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(14,18,9,.28)';
+    ctx.font = '9px Cabinet Grotesk, sans-serif';
+    ctx.fillText(pct + '%', 0, y + 3);
+  });
+
+  // Threshold dashed line at 35%
+  const ty = pad.t + gH - (35 / 100) * gH;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(184,118,74,.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad.l, ty); ctx.lineTo(W - pad.r, ty); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Map history → canvas points
+  const pts = hist.map((v, i) => ({
+    x: pad.l + (i / (hist.length - 1)) * gW,
+    y: pad.t + gH - (Math.max(0, Math.min(100, v)) / 100) * gH,
+  }));
+
+  // Filled area under the line
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + gH);
+  grad.addColorStop(0, 'rgba(90,158,60,.2)');
+  grad.addColorStop(1, 'rgba(90,158,60,.0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.t + gH);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, pad.t + gH);
+  ctx.closePath(); ctx.fill();
+
+  // Moisture line
+  ctx.strokeStyle = '#5a9e3c'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  // Current-value dot
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = '#5a9e3c';
+  ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(last.x, last.y, 2, 0, Math.PI * 2); ctx.fill();
+}
+
+function _renderAlertLog() {
+  const list  = document.getElementById('alertLogList');
+  const badge = document.getElementById('alertCountBadge');
+  if (!list) return;
+  if (badge) badge.textContent = _mon.alertLog.length;
+  if (_mon.alertLog.length === 0) {
+    list.innerHTML = '<div class="alert-log-empty">No alerts yet &mdash; monitoring in progress</div>';
+    return;
+  }
+  list.innerHTML = _mon.alertLog.map(a => `
+    <div class="alert-log-row">
+      <div class="alert-log-dot"></div>
+      <div class="alert-log-body">
+        <div class="alert-log-text">${a.text}</div>
+        ${a.emailed ? `<div class="alert-log-emailed">emailed &rarr; ${a.emailed}</div>` : ''}
+      </div>
+      <div class="alert-log-time">${a.time}</div>
+    </div>`).join('');
+}
+
+function _monitorTick() {
+  const r = fetchSensorReading();
+  _mon.history.push(r.moisture);
+  if (_mon.history.length > 40) _mon.history.shift();
+  _updatePump(r.moisture);
+  _checkAlerts(r);
+  _renderSensors(r);
+  _renderPump();
+  _drawChart();
+  _renderAlertLog();
+}
+
+// Public handlers referenced from HTML
+window.togglePumpOverride = function() {
+  if (!_mon.pumpOverride) {
+    _mon.pumpOverride = true;
+    _mon.pumpOn = !_mon.pumpOn; // flip from current state
+  } else {
+    _mon.pumpOverride = false;  // return to auto
+  }
+  _renderPump();
+};
+
+window.toggleEmailAlerts = function() {
+  _mon.emailOn = !_mon.emailOn;
+  const btn = document.getElementById('emailToggle');
+  if (btn) btn.setAttribute('aria-checked', String(_mon.emailOn));
+  const status = document.getElementById('emailStatus');
+  if (status) status.textContent = _mon.emailOn
+    ? 'Alerts will be marked as emailed when they fire.'
+    : '';
+};
+
+// Wrap goPage to start/stop the sensor interval
+(function() {
+  const _orig = window.goPage;
+  window.goPage = function(name) {
+    _orig(name);
+    if (name === 'monitor') {
+      if (!_mon.ticker) _mon.ticker = setInterval(_monitorTick, 2000);
+      _monitorTick(); // immediate render on page open
+    } else {
+      if (_mon.ticker) { clearInterval(_mon.ticker); _mon.ticker = null; }
+    }
+  };
+})();
+
 window.simState = { day:1, plants:[], avgHealth:0, avgWater:0, yieldEst:0, appliedProducts:[] };
 window.addToCartById   = id => addToCart(id);
 window.goPage          = goPage;
@@ -994,4 +1233,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Poll dashboard KPIs for sim state changes
   setInterval(() => { if (currentPage === 'dashboard') refreshDashboard(); }, 2000);
+
+  // Wire email input → monitor state
+  const _alertEmailEl = document.getElementById('alertEmail');
+  if (_alertEmailEl) _alertEmailEl.addEventListener('input', () => { _mon.alertEmail = _alertEmailEl.value.trim(); });
 });
