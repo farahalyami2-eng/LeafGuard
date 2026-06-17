@@ -267,7 +267,7 @@ def chat():
         return jsonify({
             "reply": (
                 "The AI system is currently unavailable. "
-                "Make sure your OpenAI API key is set in AgroRAG/.env "
+                "Make sure your ANTHROPIC_API_KEY is set in AgroRAG/.env "
                 "and all Python dependencies are installed."
             ),
             "tools": [], "low_confidence": False,

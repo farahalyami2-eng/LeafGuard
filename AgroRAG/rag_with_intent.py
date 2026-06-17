@@ -29,7 +29,7 @@ load_dotenv(_HERE / ".env")
 import joblib
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 # ── Constants ──────────────────────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ class RAGChatbot:
             embedding_function=self._embeddings,
         )
 
-        self._llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self._llm = ChatAnthropic(model="claude-haiku-4-5-20251001", temperature=0)
         print("[RAG] Ready.")
 
     # ── Public API ─────────────────────────────────────────────────────────

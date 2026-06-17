@@ -55,7 +55,7 @@ sys.path.insert(0, str(_ROOT / "AI Models"))
 sys.path.insert(0, str(_ROOT / "recommendation Engine"))
 sys.path.insert(0, str(_ROOT / "AgroRAG"))
 
-from openai import OpenAI                       # noqa: E402
+import anthropic as _anthropic                   # noqa: E402
 
 # Recommender and RAG are imported at module level (no heavy deps at import time).
 # model_inference is imported lazily inside _get_models() because it pulls in
@@ -64,161 +64,140 @@ from recommender import Recommender             # noqa: E402
 from rag_with_intent import RAGChatbot          # noqa: E402
 
 
-# ── Tool schemas (OpenAI function-calling format) ───────────────────────────
+# ── Tool schemas (Anthropic tool-calling format) ────────────────────────────
 
 _TOOLS = [
     {
-        "type": "function",
-        "function": {
-            "name": "check_health_status",
-            "description": (
-                "Determines whether the plant in the provided image is healthy or diseased. "
-                "Use ONLY when the user explicitly asks about health status "
-                "(e.g. 'is this plant okay?', 'does this look healthy?'). "
-                "Skip this tool if the user's message already implies the plant is sick "
-                "(e.g. they mention symptoms, use words like 'infected', 'sick', 'disease')."
-            ),
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
+        "name": "check_health_status",
+        "description": (
+            "Determines whether the plant in the provided image is healthy or diseased. "
+            "Use ONLY when the user explicitly asks about health status "
+            "(e.g. 'is this plant okay?', 'does this look healthy?'). "
+            "Skip this tool if the user's message already implies the plant is sick "
+            "(e.g. they mention symptoms, use words like 'infected', 'sick', 'disease')."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
     },
     {
-        "type": "function",
-        "function": {
-            "name": "classify_crop",
-            "description": (
-                "Identifies the crop or plant type shown in the provided image. "
-                "Returns one of 30 types: apple, banana, basil, bean, bell_pepper, "
-                "blueberry, broccoli, cabbage, carrot, cherry, citrus, coffee, corn, "
-                "cucumber, eggplant, garlic, ginger, grape, lettuce, peach, plum, potato, "
-                "raspberry, rice, soybean, squash, strawberry, tomato, wheat, zucchini. "
-                "Use when the crop type is not stated in the user's message."
-            ),
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
+        "name": "classify_crop",
+        "description": (
+            "Identifies the crop or plant type shown in the provided image. "
+            "Returns one of 30 types: apple, banana, basil, bean, bell_pepper, "
+            "blueberry, broccoli, cabbage, carrot, cherry, citrus, coffee, corn, "
+            "cucumber, eggplant, garlic, ginger, grape, lettuce, peach, plum, potato, "
+            "raspberry, rice, soybean, squash, strawberry, tomato, wheat, zucchini. "
+            "Use when the crop type is not stated in the user's message."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
     },
     {
-        "type": "function",
-        "function": {
-            "name": "classify_disease",
-            "description": (
-                "Detects which of 9 plant diseases is visible in the provided image. "
-                "Possible results: Canker_Wilt, Downy_Mildew, Leaf_Blight, Leaf_Spot, "
-                "Mosaic_Virus, Powdery_Mildew, Rot, Rust, Scab_Smut. "
-                "Use when the plant is known or implied to be diseased. "
-                "Do NOT use for date palm plants — use classify_datepalm_disease instead."
-            ),
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
+        "name": "classify_disease",
+        "description": (
+            "Detects which of 9 plant diseases is visible in the provided image. "
+            "Possible results: Canker_Wilt, Downy_Mildew, Leaf_Blight, Leaf_Spot, "
+            "Mosaic_Virus, Powdery_Mildew, Rot, Rust, Scab_Smut. "
+            "Use when the plant is known or implied to be diseased. "
+            "Do NOT use for date palm plants — use classify_datepalm_disease instead."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
     },
     {
-        "type": "function",
-        "function": {
-            "name": "classify_datepalm_disease",
-            "description": (
-                "Specialised date palm disease detector. "
-                "Results: brown_spots (fungal), healthy, or white_scale (scale insects). "
-                "Use ONLY when the crop is confirmed to be a date palm."
-            ),
-            "parameters": {"type": "object", "properties": {}, "required": []},
-        },
+        "name": "classify_datepalm_disease",
+        "description": (
+            "Specialised date palm disease detector. "
+            "Results: brown_spots (fungal), healthy, or white_scale (scale insects). "
+            "Use ONLY when the crop is confirmed to be a date palm."
+        ),
+        "input_schema": {"type": "object", "properties": {}},
     },
     {
-        "type": "function",
-        "function": {
-            "name": "get_product_recommendations",
-            "description": (
-                "Retrieves ranked agricultural product recommendations for a specific "
-                "crop + disease combination. "
-                "Call this after you know the crop type and disease status — whether "
-                "those came from image tools or from the user's own text. "
-                "Also call for healthy plants to get preventive / growth-support products."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "crop_type": {
-                        "type": "string",
-                        "description": (
-                            "Crop or plant type. Use the exact classifier output when "
-                            "available, or the crop name from the user's text."
-                        ),
-                    },
-                    "disease": {
-                        "type": "string",
-                        "description": (
-                            "Exact disease name. Use these normalised forms: "
-                            "Canker_Wilt, Downy_Mildew, Leaf_Blight, Leaf_Spot, "
-                            "Mosaic_Virus, Powdery_Mildew, Rot, Rust, Scab_Smut, "
-                            "brown_spots, white_scale. "
-                            "Omit this field if the plant is healthy."
-                        ),
-                    },
-                    "is_healthy": {
-                        "type": "boolean",
-                        "description": (
-                            "True if the plant is healthy (returns preventive / "
-                            "growth-support products). False or omit when diseased."
-                        ),
-                    },
+        "name": "get_product_recommendations",
+        "description": (
+            "Retrieves ranked agricultural product recommendations for a specific "
+            "crop + disease combination. "
+            "Call this after you know the crop type and disease status — whether "
+            "those came from image tools or from the user's own text. "
+            "Also call for healthy plants to get preventive / growth-support products."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "crop_type": {
+                    "type": "string",
+                    "description": (
+                        "Crop or plant type. Use the exact classifier output when "
+                        "available, or the crop name from the user's text."
+                    ),
                 },
-                "required": ["is_healthy"],
+                "disease": {
+                    "type": "string",
+                    "description": (
+                        "Exact disease name. Use these normalised forms: "
+                        "Canker_Wilt, Downy_Mildew, Leaf_Blight, Leaf_Spot, "
+                        "Mosaic_Virus, Powdery_Mildew, Rot, Rust, Scab_Smut, "
+                        "brown_spots, white_scale. "
+                        "Omit this field if the plant is healthy."
+                    ),
+                },
+                "is_healthy": {
+                    "type": "boolean",
+                    "description": (
+                        "True if the plant is healthy (returns preventive / "
+                        "growth-support products). False or omit when diseased."
+                    ),
+                },
             },
+            "required": ["is_healthy"],
         },
     },
     {
-        "type": "function",
-        "function": {
-            "name": "answer_agricultural_question",
-            "description": (
-                "Answers text-based agricultural questions using the LeafGuard knowledge base. "
-                "Covers: product usage / dosage / mixing ratios, safety and toxicity, "
-                "order / delivery / logistics, disease and pest explanations. "
-                "Use for any question that does NOT require image analysis or a product lookup. "
-                "When crop or disease context is already known, enrich the question string "
-                "with that context before calling this tool."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "question": {
-                        "type": "string",
-                        "description": (
-                            "The full question to answer. If crop/disease context is known "
-                            "from earlier in this conversation, incorporate it here "
-                            "(e.g. 'How do I apply Bacteria Clear for Downy_Mildew on citrus?')."
-                        ),
-                    },
+        "name": "answer_agricultural_question",
+        "description": (
+            "Answers text-based agricultural questions using the LeafGuard knowledge base. "
+            "Covers: product usage / dosage / mixing ratios, safety and toxicity, "
+            "order / delivery / logistics, disease and pest explanations. "
+            "Use for any question that does NOT require image analysis or a product lookup. "
+            "When crop or disease context is already known, enrich the question string "
+            "with that context before calling this tool."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": (
+                        "The full question to answer. If crop/disease context is known "
+                        "from earlier in this conversation, incorporate it here "
+                        "(e.g. 'How do I apply Bacteria Clear for Downy_Mildew on citrus?')."
+                    ),
                 },
-                "required": ["question"],
             },
+            "required": ["question"],
         },
     },
     {
-        "type": "function",
-        "function": {
-            "name": "get_location_advice",
-            "description": (
-                "Returns climate zone, seasonal conditions, soil type, water quality, "
-                "and active agricultural risks for the user's location. "
-                "ALWAYS call this tool when the message contains a [User location: ...] prefix. "
-                "Use the result to: tailor product recommendations to local stressors, "
-                "add heat/humidity/frost/salinity notes, adjust irrigation timing advice, "
-                "and mention locally common diseases or pests for the current season."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "city": {
-                        "type": "string",
-                        "description": "City name extracted from the [User location: City, Country] prefix.",
-                    },
-                    "country": {
-                        "type": "string",
-                        "description": "Country name extracted from the [User location: City, Country] prefix.",
-                    },
+        "name": "get_location_advice",
+        "description": (
+            "Returns climate zone, seasonal conditions, soil type, water quality, "
+            "and active agricultural risks for the user's location. "
+            "ALWAYS call this tool when the message contains a [User location: ...] prefix. "
+            "Use the result to: tailor product recommendations to local stressors, "
+            "add heat/humidity/frost/salinity notes, adjust irrigation timing advice, "
+            "and mention locally common diseases or pests for the current season."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "City name extracted from the [User location: City, Country] prefix.",
                 },
-                "required": ["city"],
+                "country": {
+                    "type": "string",
+                    "description": "Country name extracted from the [User location: City, Country] prefix.",
+                },
             },
+            "required": ["city"],
         },
     },
 ]
@@ -320,7 +299,7 @@ class LeafGuardAgent:
     """
 
     def __init__(self) -> None:
-        self._client = OpenAI()
+        self._client = _anthropic.Anthropic()
         self._models     = None   # LeafGuardModels — loaded lazily on first image tool call
         self._recommender: Optional[Recommender] = None
         self._rag: Optional[RAGChatbot] = None
@@ -356,67 +335,58 @@ class LeafGuardAgent:
         )
 
         messages: list[dict] = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user",   "content": message + image_note},
+            {"role": "user", "content": message + image_note},
         ]
 
         tools_used:   list[str] = []
         tool_results: dict      = {}
+        final_text = ""
 
         # ── Agentic loop ───────────────────────────────────────────────────
         # The LLM may call tools in multiple rounds (e.g. check health first,
         # then based on the result decide to classify disease).
         while True:
-            response = self._client.chat.completions.create(
-                model              = "gpt-4o-mini",
-                messages           = messages,
-                tools              = _TOOLS,
-                tool_choice        = "auto",
-                parallel_tool_calls= True,
-                temperature        = 0,
+            response = self._client.messages.create(
+                model      = "claude-haiku-4-5-20251001",
+                max_tokens = 4096,
+                system     = _SYSTEM_PROMPT,
+                messages   = messages,
+                tools      = _TOOLS,
+                temperature= 0,
             )
 
-            choice = response.choices[0]
+            # Collect any text from this turn
+            for block in response.content:
+                if block.type == "text":
+                    final_text = block.text
 
-            # Convert the assistant message to a plain dict for the message history
-            assistant_msg: dict = {"role": "assistant", "content": choice.message.content}
-            if choice.message.tool_calls:
-                assistant_msg["tool_calls"] = [
-                    {
-                        "id":   tc.id,
-                        "type": "function",
-                        "function": {
-                            "name":      tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in choice.message.tool_calls
-                ]
-            messages.append(assistant_msg)
+            if response.stop_reason != "tool_use":
+                break  # LLM is done — no more tool calls
 
-            if choice.finish_reason != "tool_calls":
-                break  # LLM is done — final answer is in choice.message.content
+            # ── Append assistant turn (preserving all content blocks) ──────
+            messages.append({"role": "assistant", "content": response.content})
 
-            # ── Execute all tool calls for this round in parallel ──────────
-            tool_calls = choice.message.tool_calls
+            # ── Execute all tool_use blocks for this round in parallel ─────
+            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
 
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 futures = {
-                    tc.id: (
-                        tc.function.name,
+                    b.id: (
+                        b.name,
                         pool.submit(
                             self._execute_tool,
-                            tc.function.name,
-                            json.loads(tc.function.arguments or "{}"),
+                            b.name,
+                            b.input,   # already a dict, no json.loads needed
                             image_path,
                         ),
                     )
-                    for tc in tool_calls
+                    for b in tool_use_blocks
                 }
 
-            # Collect results and feed them back to the LLM
-            for tc in tool_calls:
-                name, future = futures[tc.id]
+            # Collect results and bundle them into a single user turn
+            tool_result_content: list[dict] = []
+            for b in tool_use_blocks:
+                name, future = futures[b.id]
                 try:
                     result = future.result()
                 except Exception as exc:
@@ -425,14 +395,16 @@ class LeafGuardAgent:
                 tools_used.append(name)
                 tool_results[name] = result
 
-                messages.append({
-                    "role":         "tool",
-                    "tool_call_id": tc.id,
-                    "content":      json.dumps(result, ensure_ascii=False, default=str),
+                tool_result_content.append({
+                    "type":        "tool_result",
+                    "tool_use_id": b.id,
+                    "content":     json.dumps(result, ensure_ascii=False, default=str),
                 })
 
+            messages.append({"role": "user", "content": tool_result_content})
+
         return {
-            "answer":       choice.message.content or "",
+            "answer":       final_text,
             "tools_used":   tools_used,
             "tool_results": tool_results,
         }
