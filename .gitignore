@@ -6,8 +6,7 @@ AgroRAG/.env
 # ── Database (user data only — AgroRAG/agri_db/ is needed for RAG) ─────────
 users.db
 
-# ── Heavy AI assets (339 MB total — too large for GitHub) ──────────────────
-AI Models/Models Weights/
+# ── Heavy AI assets ────────────────────────────────────────────────────────
 AI Models/Outputs/
 AI Models/Datasets/
 
