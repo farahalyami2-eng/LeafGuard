@@ -207,6 +207,4 @@ Retrieval-Augmented Generation for free-text agricultural questions.
 - **Intent routing:** classifies question type before retrieval for better precision
 - Called via `answer_agricultural_question` tool in `agent.py`
 
----
 
-## Repository Structure
