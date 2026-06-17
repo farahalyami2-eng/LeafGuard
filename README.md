@@ -206,8 +206,7 @@ LeafGuard solves a real problem: a farmer takes a photo of a sick leaf and doesn
   <text x="398" y="603" dominant-baseline="central" fill="#3A3010" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Scenario D</text>
   <rect x="490" y="596" width="12" height="12" rx="2" fill="#F2E2B1" stroke="#C0B870" stroke-width="0.5" style="fill:rgb(242, 226, 177);stroke:rgb(192, 184, 112);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
   <text x="508" y="603" dominant-baseline="central" fill="#3A3010" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">D tools</text>
-</svg>AGE HERE -->
-![Pipeline Architecture](<img width="680" height="660" alt="agent_architecture_new_palette" src="https://github.com/user-attachments/assets/80bd9b00-f2c7-437b-9f3e-3d7764b5a3ce" />
+(<img width="680" height="660" alt="agent_architecture_new_palette" src="https://github.com/user-attachments/assets/80bd9b00-f2c7-437b-9f3e-3d7764b5a3ce" />
 )
 
 
