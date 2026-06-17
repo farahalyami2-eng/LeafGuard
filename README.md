@@ -208,3 +208,6 @@ Retrieval-Augmented Generation for free-text agricultural questions.
 - Called via `answer_agricultural_question` tool in `agent.py`
 
 
+### Live Site
+
+https://leafguard-rz47.onrender.com/
