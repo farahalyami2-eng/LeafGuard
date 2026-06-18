@@ -133,21 +133,23 @@ document.addEventListener('click', e => {
 });
 
 /* ============================================================
-   LOCATION
+   LOCATION  — one-time per user account (keyed by user ID)
    ============================================================ */
+function _locDecidedKey() { return currentUser ? `lg_loc_decided_${currentUser.id}` : 'lg_loc_decided'; }
+function _locDataKey()    { return currentUser ? `lg_location_${currentUser.id}`    : 'lg_location'; }
+
 function showLocationModal() {
-  if (localStorage.getItem('lg_location_decided')) return;
+  if (localStorage.getItem(_locDecidedKey())) return;
   document.getElementById('locationModal').classList.remove('hidden');
 }
 
 function allowLocation() {
   document.getElementById('locationModal').classList.add('hidden');
-  localStorage.setItem('lg_location_decided', '1');
+  localStorage.setItem(_locDecidedKey(), '1');
 
   navigator.geolocation.getCurrentPosition(
     pos => {
       const { latitude: lat, longitude: lng } = pos.coords;
-      // Reverse-geocode with free API (no key required)
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
         .then(r => r.json())
         .then(data => {
@@ -156,21 +158,21 @@ function allowLocation() {
             city:    data.address?.city || data.address?.town || data.address?.village || '',
             country: data.address?.country || '',
           };
-          localStorage.setItem('lg_location', JSON.stringify(userLocation));
+          localStorage.setItem(_locDataKey(), JSON.stringify(userLocation));
           showLocationBadge();
         })
         .catch(() => {
           userLocation = { lat, lng, city: '', country: '' };
-          localStorage.setItem('lg_location', JSON.stringify(userLocation));
+          localStorage.setItem(_locDataKey(), JSON.stringify(userLocation));
         });
     },
-    () => { /* user denied or error — silently skip */ }
+    () => {}
   );
 }
 
 function skipLocation() {
   document.getElementById('locationModal').classList.add('hidden');
-  localStorage.setItem('lg_location_decided', '1');
+  localStorage.setItem(_locDecidedKey(), '1');
 }
 
 function showLocationBadge() {
@@ -184,7 +186,7 @@ function showLocationBadge() {
 }
 
 function loadSavedLocation() {
-  const saved = localStorage.getItem('lg_location');
+  const saved = localStorage.getItem(_locDataKey());
   if (saved) {
     try { userLocation = JSON.parse(saved); showLocationBadge(); } catch {}
   }
@@ -607,11 +609,13 @@ async function sendMessage() {
     if (data.low_confidence) appendLowConfidenceWarning();
     appendBotMsg(reply, data.tools || []);
     chatHistory.push({ role: 'assistant', content: reply });
+    saveChatHistory();
   } catch {
     hideTyping();
     const errMsg = t('err_network');
     appendBotMsg(errMsg, []);
     chatHistory.push({ role: 'assistant', content: errMsg });
+    saveChatHistory();
   } finally {
     input.disabled = false;
     document.getElementById('sendBtn').disabled = false;
@@ -635,6 +639,123 @@ function sendQuickQuestion(q) {
   const input = document.getElementById('chatInput');
   input.value = q;
   setTimeout(() => sendMessage(), 80);
+}
+
+/* ============================================================
+   CHAT SESSIONS — multiple conversations per user, persisted in localStorage
+   ============================================================ */
+function _sessionsKey() { return currentUser ? `lg_sessions_${currentUser.id}` : null; }
+
+let _currentSessionId = null;
+function _makeSessionId() { return 'sess_' + Date.now(); }
+
+function _getSessions() {
+  const key = _sessionsKey();
+  if (!key) return [];
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+}
+
+function _saveSessions(sessions) {
+  const key = _sessionsKey();
+  if (!key) return;
+  localStorage.setItem(key, JSON.stringify(sessions.slice(-30)));
+}
+
+function saveChatHistory() {
+  if (!currentUser || !chatHistory.length) return;
+  const sessions = _getSessions();
+  const preview  = (chatHistory.find(m => m.role === 'user')?.content || 'Conversation').slice(0, 55);
+
+  const existing = sessions.find(s => s.id === _currentSessionId);
+  if (existing) {
+    existing.messages = chatHistory.slice(-120);
+    existing.preview  = preview;
+  } else {
+    _currentSessionId = _currentSessionId || _makeSessionId();
+    sessions.push({ id: _currentSessionId, startedAt: new Date().toISOString(), preview, messages: chatHistory.slice(-120) });
+  }
+  _saveSessions(sessions);
+  renderSessionList();
+}
+
+function loadChatHistory() {
+  const sessions = _getSessions();
+  if (!sessions.length) return;
+  const last = sessions[sessions.length - 1];
+  _currentSessionId = last.id;
+  _renderSessionMessages(last.messages || []);
+  renderSessionList();
+}
+
+function _renderSessionMessages(messages) {
+  chatHistory = messages;
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = '';
+  messages.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = `msg msg--${msg.role === 'user' ? 'user' : 'bot'}`;
+    const label = msg.role === 'user' ? (currentUser ? currentUser.name[0].toUpperCase() : 'U') : 'L';
+    const avatarStyle = msg.role !== 'user' ? ' style="background:var(--moss)"' : '';
+    div.innerHTML = `
+      <div class="msg-avatar"${avatarStyle}>${label}</div>
+      <div class="msg-bubble">${msg.role === 'user' ? `<p>${escHtml(msg.content)}</p>` : formatBotMsg(msg.content)}</div>`;
+    container.appendChild(div);
+  });
+  if (messages.length) {
+    container.scrollTop = container.scrollHeight;
+    const tipsPanel = document.getElementById('chatTipsPanel');
+    if (tipsPanel) tipsPanel.classList.add('hidden');
+  }
+}
+
+function startNewChat() {
+  if (chatHistory.length) saveChatHistory();
+  chatHistory = [];
+  _currentSessionId = _makeSessionId();
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = '';
+  const tipsPanel = document.getElementById('chatTipsPanel');
+  if (tipsPanel) tipsPanel.classList.remove('hidden');
+  renderSessionList();
+}
+
+function openSession(id) {
+  if (_currentSessionId !== id && chatHistory.length) saveChatHistory();
+  const session = _getSessions().find(s => s.id === id);
+  if (!session) return;
+  _currentSessionId = id;
+  _renderSessionMessages(session.messages || []);
+  renderSessionList();
+}
+
+function clearChatHistory() {
+  chatHistory = [];
+  _currentSessionId = null;
+  const key = _sessionsKey();
+  if (key) localStorage.removeItem(key);
+  const container = document.getElementById('chatMessages');
+  container.innerHTML = '';
+  const tipsPanel = document.getElementById('chatTipsPanel');
+  if (tipsPanel) tipsPanel.classList.remove('hidden');
+  renderSessionList();
+}
+
+function renderSessionList() {
+  const el = document.getElementById('chatSessionList');
+  if (!el) return;
+  const sessions = _getSessions().slice().reverse();
+  if (!sessions.length) {
+    el.innerHTML = '<div class="session-empty">No previous chats</div>';
+    return;
+  }
+  el.innerHTML = sessions.map(s => {
+    const d = new Date(s.startedAt);
+    const label = d.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return `<div class="session-item ${s.id === _currentSessionId ? 'active' : ''}" onclick="openSession('${s.id}')">
+      <div class="session-preview">${escHtml((s.preview || 'Conversation').slice(0,45))}</div>
+      <div class="session-date">${label}</div>
+    </div>`;
+  }).join('');
 }
 
 function initChat() {
@@ -1216,8 +1337,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auth check — redirect to login if not authenticated
   await loadUser();
 
-  // Load saved location
+  // Load saved location (user-scoped, no re-prompt if already decided)
   loadSavedLocation();
+
+  // Restore chat history from previous session
+  loadChatHistory();
 
   // Init shop + chat
   initShopFilters();
@@ -1228,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Start on home page
   goPage('home');
 
-  // Show location modal on first visit (slight delay for UX)
+  // Show location modal only if this user hasn't decided yet
   setTimeout(showLocationModal, 1200);
 
   // Poll dashboard KPIs for sim state changes

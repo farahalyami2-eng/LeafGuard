@@ -35,7 +35,8 @@ load_dotenv(ROOT / "AgroRAG" / ".env")
 # ── Flask ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, static_folder=str(ROOT / "website"), static_url_path="")
 app.secret_key = os.environ.get("LEAFGUARD_SECRET", "leafguard-dev-secret-2026-change-in-prod")
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 # ── SQLite ─────────────────────────────────────────────────────────────────

@@ -26,3 +26,4 @@ pillow==12.2.0
 # Data
 numpy==2.3.5
 pandas==2.3.3
+openpyxl
