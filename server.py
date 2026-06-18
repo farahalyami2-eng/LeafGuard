@@ -117,7 +117,7 @@ def _order_status(created_at_str: str) -> dict:
         "steps": [{**s, "done": elapsed >= s["at_min"]} for s in _ORDER_STEPS],
     }
 
-# ── Agent (lazy) ───────────────────────────────────────────────────────────
+# ── Agent ──────────────────────────────────────────────────────────────────
 _agent = None
 
 def _get_agent():
@@ -130,6 +130,21 @@ def _get_agent():
         except Exception as exc:
             print(f"[LeafGuard] Agent failed to load: {exc}")
     return _agent
+
+def _preload():
+    """Load agent + image models in background so first image request is fast."""
+    import threading, time
+    def _run():
+        time.sleep(5)  # let Flask finish binding first
+        agent = _get_agent()
+        if agent:
+            print("[LeafGuard] Pre-loading image models...")
+            try:
+                agent._get_models()
+                print("[LeafGuard] Image models ready.")
+            except Exception as exc:
+                print(f"[LeafGuard] Model pre-load failed: {exc}")
+    threading.Thread(target=_run, daemon=True).start()
 
 # ── Auth guard ─────────────────────────────────────────────────────────────
 def require_auth(f):
@@ -429,6 +444,7 @@ def update_order_dest(order_id):
 
 if __name__ == "__main__":
     _init_db()
+    _preload()
     print("=" * 52)
     print("  LeafGuard Web Server  —  http://localhost:5000")
     print("=" * 52)

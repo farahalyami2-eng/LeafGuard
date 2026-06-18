@@ -1,3 +1,13 @@
+---
+title: LeafGuard
+emoji: 🌿
+colorFrom: green
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 <p align="center">
   <!-- HERO BANNER IMAGE HERE -->
 </p>
