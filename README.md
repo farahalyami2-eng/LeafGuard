@@ -220,4 +220,4 @@ Retrieval-Augmented Generation for free-text agricultural questions.
 
 ### Live Site
 
-https://leafguard-rz47.onrender.com/
+https://huggingface.co/spaces/sasa7676/LeafGuard
